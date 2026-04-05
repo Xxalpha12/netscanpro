@@ -11,11 +11,12 @@ logger = get_logger(__name__)
 
 try:
     import nmap
+    nm_test = nmap.PortScanner()
+    nm_test.scan("127.0.0.1", arguments="-p 80 --open")
     NMAP_AVAILABLE = True
-except ImportError:
+except Exception:
     NMAP_AVAILABLE = False
-    logger.warning("python-nmap not installed. Install with: pip install python-nmap")
-
+    logger.warning("nmap binary not found - using socket fallback.")
 
 class NetworkScanner:
 
