@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compare Scans — NetScan Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&family=VT323&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#060c14; --bg2:#0a1220; --bg3:#0f1a2e; --accent:#00c8ff; --accent2:#00ff9d; --accent3:#ff6b35; --accent4:#a855f7; --red:#ff3c3c; --text:#a8c4d8; --text2:#3d5a70; --border:rgba(0,200,255,0.12); --glow:0 0 24px rgba(0,200,255,0.2); }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Share Tech Mono',monospace; background:var(--bg); color:var(--text); min-height:100vh; display:flex; overflow-x:hidden; }
+  body::before { content:''; position:fixed; inset:0; background-image:linear-gradient(rgba(0,200,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,200,255,0.03) 1px,transparent 1px); background-size:32px 32px; pointer-events:none; }
+  body::after { content:''; position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.06) 3px,rgba(0,0,0,0.06) 4px); pointer-events:none; }
+
+  .sidebar { position:fixed; top:0; left:0; width:250px; height:100vh; background:rgba(10,18,32,0.97); border-right:1px solid var(--border); display:flex; flex-direction:column; z-index:10; }
+  .sidebar-logo { padding:24px 20px 18px; border-bottom:1px solid var(--border); }
+  .logo-top { font-size:9px; letter-spacing:4px; color:var(--text2); margin-bottom:10px; }
+  .logo-main { font-family:'Rajdhani',sans-serif; font-size:26px; font-weight:700; color:#fff; letter-spacing:2px; text-shadow:0 0 30px rgba(0,200,255,0.5); }
+  .logo-main span { color:var(--accent); }
+  .logo-tag { display:inline-block; margin-top:8px; font-size:9px; letter-spacing:2px; color:var(--accent); border:1px solid rgba(0,200,255,0.3); padding:3px 8px; border-radius:2px; }
+  .sidebar nav { padding:8px 0; flex:1; }
+  .nav-section { font-size:8px; letter-spacing:4px; color:var(--text2); padding:12px 20px 6px; }
+  .nav-link { display:flex; align-items:center; gap:10px; padding:9px 20px; color:var(--text2); text-decoration:none; font-size:11px; letter-spacing:1px; transition:all 0.2s; border-left:2px solid transparent; }
+  .nav-link::before { content:'> '; color:var(--text2); }
+  .nav-link:hover { color:var(--accent); background:rgba(0,200,255,0.04); border-left-color:rgba(0,200,255,0.4); }
+  .nav-link.active { color:var(--accent); background:rgba(0,200,255,0.06); border-left-color:var(--accent); }
+  .nav-link.active::before { content:'█ '; color:var(--accent); }
+  .sidebar-footer { padding:12px 20px; border-top:1px solid var(--border); font-size:9px; color:var(--text2); margin-top:auto; }
+
+  .main { margin-left:250px; flex:1; padding:28px 32px; position:relative; z-index:1; }
+  .page-eyebrow { font-size:9px; letter-spacing:4px; color:var(--accent2); margin-bottom:6px; }
+  .page-title { font-family:'Rajdhani',sans-serif; font-size:30px; font-weight:700; color:#fff; letter-spacing:1px; margin-bottom:24px; }
+
+  .select-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px; }
+  .field label { display:block; font-size:9px; letter-spacing:3px; color:var(--text2); margin-bottom:8px; }
+  .field select { width:100%; background:var(--bg3); border:1px solid var(--border); border-radius:4px; padding:10px 14px; color:var(--text); font-family:'Share Tech Mono',monospace; font-size:11px; outline:none; transition:all 0.2s; }
+  .field select:focus { border-color:var(--accent); box-shadow:var(--glow); }
+  .field select option { background:var(--bg3); }
+
+  .btn { display:inline-flex; align-items:center; gap:6px; padding:10px 20px; border-radius:3px; font-family:'Share Tech Mono',monospace; font-size:11px; letter-spacing:1px; cursor:pointer; border:none; transition:all 0.2s; }
+  .btn-primary { background:rgba(0,200,255,0.08); color:var(--accent); border:1px solid rgba(0,200,255,0.35); }
+  .btn-primary:hover { background:rgba(0,200,255,0.16); box-shadow:var(--glow); }
+
+  .compare-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:24px; }
+  .compare-col { background:var(--bg2); border:1px solid var(--border); border-radius:6px; overflow:hidden; }
+  .col-header { padding:14px 18px; background:var(--bg3); border-bottom:1px solid var(--border); }
+  .col-session { font-size:10px; color:var(--accent); letter-spacing:2px; }
+  .col-target { font-family:'Rajdhani',sans-serif; font-size:18px; font-weight:700; color:#fff; margin-top:4px; }
+  .col-body { padding:18px; }
+  .metric-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid rgba(0,200,255,0.04); font-size:11px; }
+  .metric-row:last-child { border:none; }
+  .metric-key { color:var(--text2); letter-spacing:1px; }
+  .metric-val { font-family:'VT323',monospace; font-size:22px; color:var(--accent); }
+  .metric-val.bad { color:var(--red); }
+  .metric-val.warn { color:var(--accent3); }
+  .metric-val.good { color:var(--accent2); }
+  .sev-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
+  .sev-chip { font-size:9px; padding:3px 10px; border-radius:20px; letter-spacing:1px; }
+  .sev-chip.c{background:rgba(192,0,0,0.1);color:#ff4444;border:1px solid rgba(192,0,0,0.3);}
+  .sev-chip.h{background:rgba(231,76,60,0.1);color:#E74C3C;border:1px solid rgba(231,76,60,0.3);}
+  .sev-chip.m{background:rgba(255,107,53,0.1);color:var(--accent3);border:1px solid rgba(255,107,53,0.3);}
+  .sev-chip.l{background:rgba(0,200,255,0.08);color:var(--accent);border:1px solid rgba(0,200,255,0.2);}
+  .loading { text-align:center; padding:40px; font-size:11px; color:var(--text2); letter-spacing:2px; display:none; }
+  .blink { animation:blink 1s step-end infinite; }
+  @keyframes blink { 50%{opacity:0} }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)} }
+  .main { animation:fadeUp 0.5s ease both; }
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-top">// SECURITY ASSESSMENT PLATFORM</div>
+    <div class="logo-main">NetScan<span>Pro</span></div>
+    <div class="logo-tag">FUPRE · FYP · OBEH E.O</div>
+  </div>
+  <nav>
+    <div class="nav-section">// NAVIGATION</div>
+    <a href="/" class="nav-link">Dashboard</a>
+    <a href="/scan/new" class="nav-link">New Scan</a>
+    <a href="/compare" class="nav-link active">Compare Scans</a>
+    <a href="#" class="nav-link">Reports</a>
+  </nav>
+  <div class="sidebar-footer">ETHICAL USE ONLY · v1.0.0</div>
+</aside>
+
+<main class="main">
+  <div class="page-eyebrow">// SCAN COMPARISON</div>
+  <div class="page-title">COMPARE SESSIONS</div>
+
+  <div class="select-row">
+    <div class="field">
+      <label>// SESSION A</label>
+      <select id="s1">
+        <option value="">Select session...</option>
+        {% for s in sessions %}
+        <option value="{{ s.id }}">{{ s.id }} — {{ s.target }} ({{ s.started_at[:10] }})</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label>// SESSION B</label>
+      <select id="s2">
+        <option value="">Select session...</option>
+        {% for s in sessions %}
+        <option value="{{ s.id }}">{{ s.id }} — {{ s.target }} ({{ s.started_at[:10] }})</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <button class="btn btn-primary" onclick="compare()">▶ COMPARE</button>
+
+  <div class="loading" id="loading">LOADING<span class="blink">_</span></div>
+
+  <div class="compare-grid" id="compare-result" style="display:none">
+    <div class="compare-col" id="col-a"></div>
+    <div class="compare-col" id="col-b"></div>
+  </div>
+</main>
+
+<script>
+async function compare() {
+  const s1 = document.getElementById("s1").value;
+  const s2 = document.getElementById("s2").value;
+  if (!s1 || !s2) { alert("Please select two sessions."); return; }
+  if (s1 === s2) { alert("Please select two different sessions."); return; }
+
+  document.getElementById("loading").style.display = "block";
+  document.getElementById("compare-result").style.display = "none";
+
+  const res = await fetch(`/api/compare?s1=${s1}&s2=${s2}`);
+  const data = await res.json();
+  document.getElementById("loading").style.display = "none";
+
+  if (data.error) { alert(data.error); return; }
+
+  document.getElementById("col-a").innerHTML = buildCol(data.session1);
+  document.getElementById("col-b").innerHTML = buildCol(data.session2);
+  document.getElementById("compare-result").style.display = "grid";
+}
+
+function buildCol(d) {
+  const sc = d.severity_counts;
+  const totalClass = d.total_findings > 10 ? "bad" : d.total_findings > 5 ? "warn" : "good";
+  return `
+    <div class="col-header">
+      <div class="col-session">// ${d.session.id}</div>
+      <div class="col-target">${d.session.target}</div>
+    </div>
+    <div class="col-body">
+      <div class="metric-row"><span class="metric-key">TOTAL FINDINGS</span><span class="metric-val ${totalClass}">${d.total_findings}</span></div>
+      <div class="metric-row"><span class="metric-key">HOSTS SCANNED</span><span class="metric-val">${d.host_count}</span></div>
+      <div class="metric-row"><span class="metric-key">WEB FINDINGS</span><span class="metric-val">${d.web_count}</span></div>
+      <div class="metric-row"><span class="metric-key">CVE FINDINGS</span><span class="metric-val">${d.cve_count}</span></div>
+      <div class="metric-row"><span class="metric-key">STATUS</span><span class="metric-val">${d.session.status.toUpperCase()}</span></div>
+      <div class="metric-row"><span class="metric-key">SCANNED</span><span class="metric-val" style="font-size:14px">${d.session.started_at.slice(0,10)}</span></div>
+      <div class="sev-row">
+        <span class="sev-chip c">CRITICAL: ${sc.Critical}</span>
+        <span class="sev-chip h">HIGH: ${sc.High}</span>
+        <span class="sev-chip m">MEDIUM: ${sc.Medium}</span>
+        <span class="sev-chip l">LOW: ${sc.Low}</span>
+      </div>
+    </div>`;
+}
+</script>
+</body>
+</html>

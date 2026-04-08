@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Remediation Checklist — NetScan Pro</title>
+<style>
+  :root { --navy:#1F3864; --blue:#2E75B6; --red:#C00000; --orange:#E67E22; --green:#27AE60; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:Arial, sans-serif; font-size:13px; color:#333; background:#fff; padding:30px; max-width:900px; margin:0 auto; }
+
+  .header { border-bottom:3px solid var(--navy); padding-bottom:16px; margin-bottom:24px; }
+  .header h1 { font-size:22px; color:var(--navy); }
+  .header .meta { font-size:11px; color:#666; margin-top:6px; }
+  .header .badge { display:inline-block; background:var(--navy); color:white; padding:3px 10px; border-radius:3px; font-size:11px; margin-top:8px; }
+
+  h2 { font-size:15px; color:var(--navy); border-bottom:1px solid #ddd; padding-bottom:6px; margin:20px 0 12px; }
+
+  .item { border:1px solid #e0e0e0; border-radius:6px; margin-bottom:10px; overflow:hidden; }
+  .item-header { display:flex; align-items:center; gap:12px; padding:10px 14px; }
+  .item-header.Critical { background:#fff0f0; border-left:4px solid var(--red); }
+  .item-header.High { background:#fff5f5; border-left:4px solid #E74C3C; }
+  .item-header.Medium { background:#fffbf0; border-left:4px solid var(--orange); }
+  .item-header.Low { background:#f0f6ff; border-left:4px solid var(--blue); }
+  .check { width:18px; height:18px; border:2px solid #999; border-radius:3px; flex-shrink:0; }
+  .item-title { flex:1; font-weight:bold; font-size:13px; }
+  .sev { font-size:10px; font-weight:bold; padding:2px 8px; border-radius:3px; color:white; }
+  .sev.Critical{background:var(--red);} .sev.High{background:#E74C3C;}
+  .sev.Medium{background:var(--orange);} .sev.Low{background:var(--blue);}
+  .item-body { padding:10px 14px 10px 44px; font-size:12px; color:#555; line-height:1.6; }
+  .item-body strong { color:#333; }
+
+  .cve-row { display:flex; gap:8px; align-items:center; padding:8px 14px; border-bottom:1px solid #f0f0f0; font-size:12px; }
+  .cve-row:last-child { border:none; }
+  .cve-id { color:var(--blue); font-weight:bold; min-width:140px; }
+  .cve-svc { color:#666; min-width:120px; }
+  .cve-score { font-weight:bold; }
+
+  .print-btn { position:fixed; top:20px; right:20px; background:var(--navy); color:white; border:none; padding:10px 20px; border-radius:5px; cursor:pointer; font-size:13px; }
+  @media print { .print-btn { display:none; } body { padding:15px; } }
+
+  .summary { background:#f8fafc; border:1px solid #ddd; border-radius:6px; padding:14px 18px; margin-bottom:20px; display:flex; gap:20px; flex-wrap:wrap; }
+  .sum-item { text-align:center; }
+  .sum-num { font-size:28px; font-weight:bold; color:var(--navy); }
+  .sum-label { font-size:10px; color:#888; }
+
+  .disclaimer { margin-top:24px; padding:12px; background:#f9f9f9; border:1px solid #eee; border-radius:4px; font-size:11px; color:#888; font-style:italic; }
+</style>
+</head>
+<body>
+<button class="print-btn" onclick="window.print()">🖨️ Print / Save PDF</button>
+
+<div class="header">
+  <h1>🛡️ Remediation Checklist</h1>
+  <div class="meta">
+    Target: <strong>{{ session.target }}</strong> &nbsp;|&nbsp;
+    Session: <strong>{{ session.id }}</strong> &nbsp;|&nbsp;
+    Generated: <strong>{{ session.started_at[:10] }}</strong>
+  </div>
+  <div class="badge">NetScan Pro · FUPRE Final Year Project · Obeh Emmanuel Onoriode</div>
+</div>
+
+<!-- Summary -->
+<div class="summary">
+  <div class="sum-item"><div class="sum-num">{{ web_findings|length + cve_findings|length }}</div><div class="sum-label">TOTAL ITEMS</div></div>
+  <div class="sum-item"><div class="sum-num" style="color:#C00000">{{ web_findings|selectattr('severity','equalto','Critical')|list|length + cve_findings|selectattr('severity','equalto','Critical')|list|length }}</div><div class="sum-label">CRITICAL</div></div>
+  <div class="sum-item"><div class="sum-num" style="color:#E74C3C">{{ web_findings|selectattr('severity','equalto','High')|list|length + cve_findings|selectattr('severity','equalto','High')|list|length }}</div><div class="sum-label">HIGH</div></div>
+  <div class="sum-item"><div class="sum-num" style="color:#E67E22">{{ web_findings|selectattr('severity','equalto','Medium')|list|length + cve_findings|selectattr('severity','equalto','Medium')|list|length }}</div><div class="sum-label">MEDIUM</div></div>
+  <div class="sum-item"><div class="sum-num" style="color:#2980B9">{{ web_findings|selectattr('severity','equalto','Low')|list|length + cve_findings|selectattr('severity','equalto','Low')|list|length }}</div><div class="sum-label">LOW</div></div>
+</div>
+
+<!-- Web findings checklist -->
+{% if web_findings %}
+<h2>Web Application Findings</h2>
+{% for f in web_findings|sort(attribute='severity') %}
+<div class="item">
+  <div class="item-header {{ f.severity }}">
+    <div class="check"></div>
+    <div class="item-title">{{ f.vuln_type }}</div>
+    <span class="sev {{ f.severity }}">{{ f.severity }}</span>
+  </div>
+  <div class="item-body">
+    <strong>Host:</strong> {{ f.host_ip }} &nbsp;|&nbsp; <strong>URL:</strong> {{ f.url }}<br>
+    <strong>Description:</strong> {{ f.description }}<br>
+    <strong>Fix:</strong> {{ f.recommendation }}
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- CVE findings checklist -->
+{% if cve_findings %}
+<h2>CVE Patch Checklist</h2>
+{% for f in cve_findings|sort(attribute='cvss_score', reverse=True) %}
+<div class="cve-row">
+  <div class="check" style="width:18px;height:18px;border:2px solid #999;border-radius:3px;flex-shrink:0"></div>
+  <div class="cve-id">{{ f.cve_id }}</div>
+  <div class="cve-svc">{{ f.service }}</div>
+  <div class="cve-score" style="color:{% if f.cvss_score >= 9 %}#C00000{% elif f.cvss_score >= 7 %}#E74C3C{% elif f.cvss_score >= 4 %}#E67E22{% else %}#2980B9{% endif %}">CVSS: {{ f.cvss_score }}</div>
+  <div style="color:#666;font-size:11px">{{ f.host_ip }}:{{ f.port }}</div>
+</div>
+{% endfor %}
+{% endif %}
+
+<div class="disclaimer">
+  ⚠ This checklist is generated from an authorized security assessment by NetScan Pro.
+  All findings should be verified by a qualified security professional before remediation.
+  NetScan Pro is a FUPRE Final Year Project by Obeh Emmanuel Onoriode.
+</div>
+</body>
+</html>
