@@ -4,161 +4,85 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{{ title }} — NetScan Pro</title>
-<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&family=VT323&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg:#060c14; --bg2:#0a1220; --bg3:#0f1a2e;
+    --bg:#080d14; --bg2:#0d1520; --bg3:#111d2c;
+    --grid:rgba(0,200,255,0.04);
     --accent:#00c8ff; --accent2:#00ff9d; --accent3:#ff6b35; --accent4:#a855f7;
-    --red:#ff3c3c; --text:#a8c4d8; --text2:#3d5a70;
-    --border:rgba(0,200,255,0.12);
-    --glow:0 0 24px rgba(0,200,255,0.2);
-    --glow2:0 0 24px rgba(0,255,157,0.2);
+    --text:#c8d8e8; --text2:#7a96b0;
+    --border:rgba(0,200,255,0.15);
+    --glow:0 0 20px rgba(0,200,255,0.15);
   }
   * { box-sizing:border-box; margin:0; padding:0; }
-  body { font-family:'Share Tech Mono',monospace; background:var(--bg); color:var(--text); min-height:100vh; display:flex; overflow-x:hidden; }
-  body::before { content:''; position:fixed; inset:0; background-image:linear-gradient(rgba(0,200,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,200,255,0.03) 1px,transparent 1px); background-size:32px 32px; pointer-events:none; z-index:0; }
-  body::after { content:''; position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.06) 3px,rgba(0,0,0,0.06) 4px); pointer-events:none; z-index:0; animation:scanmove 12s linear infinite; }
-  @keyframes scanmove { from{background-position:0 0}to{background-position:0 100%} }
+  body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; overflow-x:hidden; }
+  body::before { content:''; position:fixed; inset:0; background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px); background-size:40px 40px; pointer-events:none; z-index:0; }
 
   /* SIDEBAR */
-  .sidebar { position:fixed; top:0; left:0; width:250px; height:100vh; background:rgba(10,18,32,0.97); border-right:1px solid var(--border); display:flex; flex-direction:column; z-index:10; }
-  .sidebar-logo { padding:24px 20px 18px; border-bottom:1px solid var(--border); }
-  .logo-top { font-size:9px; letter-spacing:4px; color:var(--text2); margin-bottom:10px; }
-  .logo-main { font-family:'Rajdhani',sans-serif; font-size:26px; font-weight:700; color:#fff; letter-spacing:2px; text-shadow:0 0 30px rgba(0,200,255,0.5); }
-  .logo-main span { color:var(--accent); }
-  .logo-tag { display:inline-block; margin-top:8px; font-size:9px; letter-spacing:2px; color:var(--accent); border:1px solid rgba(0,200,255,0.3); padding:3px 8px; border-radius:2px; box-shadow:var(--glow); }
-  .sys-status { margin:14px 16px; background:var(--bg3); border:1px solid var(--border); border-radius:4px; padding:12px 14px; }
-  .sys-title { font-size:8px; letter-spacing:3px; color:var(--text2); margin-bottom:10px; }
-  .sys-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; font-size:10px; }
-  .sys-row:last-child { margin:0; }
-  .sys-key { color:var(--text2); }
-  .sys-val { color:var(--accent2); }
-  .sys-val.warn { color:var(--accent3); }
-  .dot-pulse { display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--accent2); margin-right:5px; vertical-align:middle; animation:dotpulse 2s ease infinite; box-shadow:0 0 6px var(--accent2); }
-  @keyframes dotpulse { 0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(0.7)} }
-  .sidebar nav { padding:8px 0; flex:1; }
-  .nav-section { font-size:8px; letter-spacing:4px; color:var(--text2); padding:12px 20px 6px; }
-  .nav-link { display:flex; align-items:center; gap:10px; padding:9px 20px; color:var(--text2); text-decoration:none; font-size:11px; letter-spacing:1px; transition:all 0.2s; border-left:2px solid transparent; }
-  .nav-link::before { content:'> '; color:var(--text2); transition:color 0.2s; }
-  .nav-link:hover { color:var(--accent); background:rgba(0,200,255,0.04); border-left-color:rgba(0,200,255,0.4); }
-  .nav-link:hover::before { color:var(--accent); }
+  .sidebar { position:fixed; top:0; left:0; width:240px; height:100vh; background:var(--bg2); border-right:1px solid var(--border); display:flex; flex-direction:column; z-index:10; }
+  .sidebar-logo { padding:28px 24px 20px; border-bottom:1px solid var(--border); }
+  .sidebar-logo .badge { display:inline-block; font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:3px; color:var(--accent); border:1px solid var(--accent); padding:3px 10px; border-radius:2px; margin-bottom:10px; box-shadow:var(--glow); }
+  .sidebar-logo h2 { font-family:'Rajdhani',sans-serif; font-size:22px; font-weight:700; color:#fff; letter-spacing:1px; }
+  .sidebar-logo h2 span { color:var(--accent); }
+  .sidebar-logo p { font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--text2); margin-top:4px; letter-spacing:1px; }
+  .sidebar nav { padding:20px 0; flex:1; }
+  .nav-label { font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:3px; color:var(--text2); padding:0 24px; margin-bottom:8px; margin-top:16px; }
+  .nav-link { display:flex; align-items:center; gap:10px; padding:10px 24px; color:var(--text2); text-decoration:none; font-size:13px; font-family:'Inter',sans-serif; transition:all 0.2s; border-left:3px solid transparent; }
+  .nav-link:hover { color:var(--text); background:rgba(0,200,255,0.04); border-left-color:rgba(0,200,255,0.3); }
   .nav-link.active { color:var(--accent); background:rgba(0,200,255,0.06); border-left-color:var(--accent); }
-  .nav-link.active::before { content:'█ '; color:var(--accent); }
-  .term-widget { margin:0 14px 14px; background:rgba(6,12,20,0.8); border:1px solid var(--border); border-radius:4px; overflow:hidden; }
-  .term-titlebar { display:flex; align-items:center; gap:6px; padding:7px 12px; background:rgba(15,26,46,0.9); border-bottom:1px solid var(--border); }
-  .tdot { width:9px; height:9px; border-radius:50%; }
-  .tdot.r{background:#ff5f56;} .tdot.y{background:#ffbd2e;} .tdot.g{background:#27c93f;}
-  .term-label { font-size:9px; color:var(--text2); margin-left:6px; letter-spacing:1px; }
-  .term-body { padding:10px 12px; }
-  .tl { font-size:10px; line-height:1.9; }
-  .tl .pr { color:var(--accent); }
-  .tl .ok { color:var(--accent2); }
-  .tl .inf { color:var(--text2); }
-  .blink { animation:blink 1s step-end infinite; color:var(--accent); }
-  @keyframes blink { 50%{opacity:0} }
-  .sidebar-footer { padding:12px 20px; border-top:1px solid var(--border); font-size:9px; color:var(--text2); letter-spacing:1px; }
+  .nav-link .icon { font-size:15px; width:20px; text-align:center; }
+  .sidebar-footer { padding:16px 24px; border-top:1px solid var(--border); font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--text2); letter-spacing:1px; }
 
   /* MAIN */
-  .main { margin-left:250px; flex:1; padding:28px 32px; position:relative; z-index:1; }
-  .page-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:24px; }
-  .page-eyebrow { font-size:9px; letter-spacing:4px; color:var(--accent2); margin-bottom:6px; }
-  .page-title { font-family:'Rajdhani',sans-serif; font-size:30px; font-weight:700; color:#fff; letter-spacing:1px; }
-  .page-sub { font-size:10px; color:var(--text2); margin-top:4px; letter-spacing:1px; }
-  .page-right { display:flex; align-items:center; gap:12px; }
-  .refresh-indicator { font-size:9px; color:var(--text2); letter-spacing:1px; }
-  .refresh-indicator span { color:var(--accent2); }
-  .btn { display:inline-flex; align-items:center; gap:6px; padding:10px 20px; border-radius:3px; font-family:'Share Tech Mono',monospace; font-size:11px; letter-spacing:1px; text-decoration:none; cursor:pointer; border:none; transition:all 0.2s; }
-  .btn-primary { background:rgba(0,200,255,0.08); color:var(--accent); border:1px solid rgba(0,200,255,0.35); }
-  .btn-primary:hover { background:rgba(0,200,255,0.16); box-shadow:var(--glow); }
+  .main { margin-left:240px; flex:1; padding:36px; position:relative; z-index:1; }
+  .page-header { margin-bottom:32px; }
+  .page-header .section-label { font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:3px; color:var(--accent2); text-transform:uppercase; margin-bottom:6px; }
+  .page-header h1 { font-family:'Rajdhani',sans-serif; font-size:28px; font-weight:700; color:#fff; letter-spacing:1px; }
 
   /* STATS */
-  .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
-  .stat-card { background:var(--bg2); border:1px solid var(--border); border-radius:6px; padding:16px 18px; position:relative; overflow:hidden; transition:all 0.3s; }
-  .stat-card:hover { box-shadow:var(--glow); border-color:rgba(0,200,255,0.25); }
+  .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:28px; }
+  .stat-card { background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:20px; position:relative; overflow:hidden; }
   .stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; }
-  .stat-card.s1::before{background:var(--accent);} .stat-card.s2::before{background:var(--accent2);}
-  .stat-card.s3::before{background:var(--accent3);} .stat-card.s4::before{background:var(--red);}
-  .stat-label { font-size:9px; letter-spacing:3px; color:var(--text2); margin-bottom:8px; }
-  .stat-num { font-family:'VT323',monospace; font-size:52px; line-height:1; }
-  .stat-card.s1 .stat-num{color:var(--accent);text-shadow:0 0 20px rgba(0,200,255,0.4);}
-  .stat-card.s2 .stat-num{color:var(--accent2);text-shadow:0 0 20px rgba(0,255,157,0.4);}
-  .stat-card.s3 .stat-num{color:var(--accent3);text-shadow:0 0 20px rgba(255,107,53,0.4);}
-  .stat-card.s4 .stat-num{color:var(--red);text-shadow:0 0 20px rgba(255,60,60,0.4);}
-  .stat-sub { font-size:9px; color:var(--text2); margin-top:4px; letter-spacing:1px; }
+  .stat-card.total::before { background:var(--accent); }
+  .stat-card.completed::before { background:var(--accent2); }
+  .stat-card.running::before { background:var(--accent3); }
+  .stat-card.errors::before { background:var(--accent4); }
+  .stat-num { font-family:'Rajdhani',sans-serif; font-size:36px; font-weight:700; color:#fff; line-height:1; }
+  .stat-card.total .stat-num { color:var(--accent); }
+  .stat-card.completed .stat-num { color:var(--accent2); }
+  .stat-card.running .stat-num { color:var(--accent3); }
+  .stat-card.errors .stat-num { color:var(--accent4); }
+  .stat-label { font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--text2); margin-top:6px; letter-spacing:1px; }
 
-  /* MID ROW */
-  .mid-row { display:grid; grid-template-columns:1fr 1fr 280px; gap:14px; margin-bottom:20px; }
-  .panel { background:var(--bg2); border:1px solid var(--border); border-radius:6px; padding:18px; }
-  .panel-head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid var(--border); }
-  .panel-eyebrow { font-size:8px; letter-spacing:3px; color:var(--accent); margin-bottom:4px; }
-  .panel-title { font-family:'Rajdhani',sans-serif; font-size:15px; font-weight:700; color:#fff; }
+  /* CARD */
+  .card { background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:24px; margin-bottom:20px; }
+  .card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding-bottom:12px; border-bottom:1px solid var(--border); }
+  .card-title { font-family:'Rajdhani',sans-serif; font-size:16px; font-weight:700; color:#fff; letter-spacing:0.5px; }
+  .card-label { font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--accent); letter-spacing:2px; }
 
-  /* Donut */
-  .donut-wrap { display:flex; align-items:center; gap:20px; }
-  .donut-svg-wrap { position:relative; width:120px; height:120px; flex-shrink:0; }
-  .donut-svg-wrap svg { transform:rotate(-90deg); }
-  .donut-label { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
-  .donut-num { font-family:'VT323',monospace; font-size:34px; color:#fff; line-height:1; }
-  .donut-sub { font-size:9px; color:var(--text2); letter-spacing:1px; }
-  .donut-legend { flex:1; display:flex; flex-direction:column; gap:10px; }
-  .leg { display:flex; align-items:center; justify-content:space-between; }
-  .leg-l { display:flex; align-items:center; gap:8px; font-size:10px; color:var(--text2); }
-  .leg-dot { width:8px; height:8px; border-radius:2px; }
-  .leg-v { font-size:11px; color:var(--text); }
+  /* TABLE */
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  th { font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:2px; color:var(--text2); padding:8px 12px; text-align:left; border-bottom:1px solid var(--border); text-transform:uppercase; }
+  td { padding:10px 12px; border-bottom:1px solid rgba(0,200,255,0.05); color:var(--text); font-family:'Inter',sans-serif; }
+  tr:hover td { background:rgba(0,200,255,0.03); }
+  code { font-family:'Share Tech Mono',monospace; color:var(--accent); font-size:11px; }
 
-  /* Bar chart */
-  .bar-chart { display:flex; flex-direction:column; gap:12px; }
-  .bar-row { display:flex; flex-direction:column; gap:4px; }
-  .bar-label-row { display:flex; justify-content:space-between; font-size:10px; }
-  .bar-lbl { color:var(--text2); letter-spacing:1px; }
-  .bar-val { color:var(--text); }
-  .bar-track { height:6px; background:var(--bg3); border-radius:3px; overflow:hidden; }
-  .bar-fill { height:100%; border-radius:3px; }
-  .bar-fill.c{background:#C00000;box-shadow:0 0 8px rgba(192,0,0,0.5);}
-  .bar-fill.h{background:#E74C3C;box-shadow:0 0 8px rgba(231,76,60,0.5);}
-  .bar-fill.m{background:var(--accent3);box-shadow:0 0 8px rgba(255,107,53,0.4);}
-  .bar-fill.l{background:var(--accent);box-shadow:0 0 8px rgba(0,200,255,0.4);}
+  /* BADGE */
+  .badge-status { display:inline-block; padding:3px 10px; border-radius:3px; font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:1px; }
+  .badge-status.completed { background:rgba(0,255,157,0.1); color:var(--accent2); border:1px solid rgba(0,255,157,0.2); }
+  .badge-status.running { background:rgba(255,107,53,0.1); color:var(--accent3); border:1px solid rgba(255,107,53,0.2); }
+  .badge-status.error { background:rgba(200,0,0,0.1); color:#ff4444; border:1px solid rgba(200,0,0,0.2); }
 
-  /* Activity feed */
-  .feed { display:flex; flex-direction:column; }
-  .feed-item { display:flex; gap:12px; padding:9px 0; border-bottom:1px solid rgba(0,200,255,0.04); }
-  .feed-item:last-child { border:none; padding-bottom:0; }
-  .feed-dot { width:7px; height:7px; border-radius:50%; margin-top:5px; flex-shrink:0; }
-  .feed-dot.completed{background:var(--accent2);box-shadow:0 0 8px var(--accent2);}
-  .feed-dot.running{background:var(--accent3);animation:dotpulse 2s ease infinite;}
-  .feed-dot.error{background:var(--red);}
-  .feed-tgt { font-size:12px; color:#fff; letter-spacing:0.5px; }
-  .feed-meta { font-size:9px; color:var(--text2); margin-top:2px; }
+  /* BTN */
+  .btn { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border-radius:4px; font-family:'Share Tech Mono',monospace; font-size:11px; letter-spacing:1px; text-decoration:none; cursor:pointer; border:none; transition:all 0.2s; }
+  .btn-primary { background:rgba(0,200,255,0.1); color:var(--accent); border:1px solid rgba(0,200,255,0.3); }
+  .btn-primary:hover { background:rgba(0,200,255,0.18); box-shadow:var(--glow); }
+  .btn-sm { padding:5px 12px; font-size:10px; }
 
-  /* SESSION LOG TABLE */
-  .log-panel { background:rgba(6,12,20,0.8); border:1px solid var(--border); border-radius:6px; overflow:hidden; }
-  .log-titlebar { display:flex; align-items:center; justify-content:space-between; padding:10px 16px; background:var(--bg3); border-bottom:1px solid var(--border); }
-  .log-title-left { display:flex; align-items:center; gap:10px; }
-  .tdots { display:flex; gap:5px; }
-  .log-title { font-size:10px; color:var(--accent); letter-spacing:2px; }
-  .log-new { font-size:10px; color:var(--accent); border:1px solid rgba(0,200,255,0.3); padding:4px 12px; border-radius:2px; text-decoration:none; transition:all 0.2s; letter-spacing:1px; }
-  .log-new:hover { background:rgba(0,200,255,0.1); box-shadow:var(--glow); }
-  table { width:100%; border-collapse:collapse; }
-  thead tr { border-bottom:1px solid var(--border); }
-  th { font-size:8px; letter-spacing:3px; color:var(--text2); padding:10px 16px; text-align:left; text-transform:uppercase; }
-  td { padding:11px 16px; border-bottom:1px solid rgba(0,200,255,0.04); font-size:11px; }
-  tr:last-child td { border:none; }
-  tbody tr { transition:background 0.2s; }
-  tbody tr:hover td { background:rgba(0,200,255,0.03); }
-  .td-id { color:var(--accent); font-size:10px; letter-spacing:1px; }
-  .td-target { color:#fff; font-size:12px; }
-  .td-time { color:var(--text2); font-size:10px; }
-  .spill { font-size:9px; padding:3px 10px; border-radius:20px; letter-spacing:1px; display:inline-block; }
-  .spill.completed{background:rgba(0,255,157,0.08);color:var(--accent2);border:1px solid rgba(0,255,157,0.2);}
-  .spill.running{background:rgba(255,107,53,0.08);color:var(--accent3);border:1px solid rgba(255,107,53,0.2);animation:dotpulse 2s ease infinite;}
-  .spill.error{background:rgba(255,60,60,0.08);color:var(--red);border:1px solid rgba(255,60,60,0.2);}
-  .vbtn { font-size:10px; color:var(--accent2); text-decoration:none; letter-spacing:1px; padding:4px 10px; border:1px solid rgba(0,255,157,0.2); border-radius:2px; transition:all 0.2s; }
-  .vbtn:hover { background:rgba(0,255,157,0.08); box-shadow:var(--glow2); }
-  .del-btn { font-size:10px; color:var(--red); letter-spacing:1px; padding:4px 10px; border:1px solid rgba(255,60,60,0.2); border-radius:2px; cursor:pointer; background:none; font-family:'Share Tech Mono',monospace; transition:all 0.2s; }
-  .del-btn:hover { background:rgba(255,60,60,0.08); }
-  .actions-cell { display:flex; gap:6px; align-items:center; }
-  .empty-state { text-align:center; padding:60px 20px; font-size:12px; color:var(--text2); letter-spacing:1px; }
+  .empty-state { text-align:center; padding:48px 0; font-family:'Share Tech Mono',monospace; font-size:12px; color:var(--text2); }
   .empty-state a { color:var(--accent); text-decoration:none; }
+  .empty-state a:hover { text-decoration:underline; }
+
   @keyframes fadeUp { from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)} }
   .main { animation:fadeUp 0.5s ease both; }
 </style>
@@ -167,267 +91,86 @@
 
 <aside class="sidebar">
   <div class="sidebar-logo">
-    <div class="logo-top">// SECURITY ASSESSMENT PLATFORM</div>
-    <div class="logo-main">NetScan<span>Pro</span></div>
-    <div class="logo-tag">FUPRE · FYP · OBEH E.O</div>
-  </div>
-  <div class="sys-status">
-    <div class="sys-title">// SYSTEM STATUS</div>
-    <div class="sys-row"><span class="sys-key">ENGINE</span><span class="sys-val"><span class="dot-pulse"></span>ONLINE</span></div>
-    <div class="sys-row"><span class="sys-key">DATABASE</span><span class="sys-val"><span class="dot-pulse"></span>CONNECTED</span></div>
-    <div class="sys-row"><span class="sys-key">NVD API</span><span class="sys-val warn">RATE LIMITED</span></div>
-    <div class="sys-row"><span class="sys-key">NMAP</span><span class="sys-val">SOCKET MODE</span></div>
+    <div class="badge">// NETSCAMPRO</div>
+    <h2>NetScan<span>Pro</span></h2>
+    <p>FUPRE · FYP · OBEH E.O</p>
   </div>
   <nav>
-    <div class="nav-section">// NAVIGATION</div>
-    <a href="/" class="nav-link {% if page=='home' %}active{% endif %}">Dashboard</a>
-    <a href="/scan/new" class="nav-link {% if page=='new_scan' %}active{% endif %}">New Scan</a>
-    <a href="#" class="nav-link">Reports</a>
-    <div class="nav-section">// SYSTEM</div>
-    <a href="#" class="nav-link">Settings</a>
+    <div class="nav-label">// Navigation</div>
+    <a href="/" class="nav-link {% if page=='home' %}active{% endif %}"><span class="icon">📋</span> Dashboard</a>
+    <a href="/scan/new" class="nav-link {% if page=='new_scan' %}active{% endif %}"><span class="icon">➕</span> New Scan</a>
+    <div class="nav-label">// Info</div>
+    <a href="#" class="nav-link"><span class="icon">📄</span> Reports</a>
   </nav>
-  <div class="term-widget">
-    <div class="term-titlebar">
-      <div class="tdots"><div class="tdot r"></div><div class="tdot y"></div><div class="tdot g"></div></div>
-      <span class="term-label">bash — netscampro</span>
-    </div>
-    <div class="term-body">
-      <div class="tl"><span class="pr">root@netscan:~$ </span><span class="ok">./status</span></div>
-      <div class="tl"><span class="ok">[+] v1.0.0 active</span></div>
-      <div class="tl ok" id="term-sessions"><span class="ok">[+] Sessions: {{ sessions|length }}</span></div>
-      <div class="tl"><span class="inf">[*] Ethical use only</span></div>
-      <div class="tl"><span class="pr">$ </span><span class="blink">█</span></div>
-    </div>
-  </div>
-  <div class="sidebar-footer">ETHICAL USE ONLY · v1.0.0</div>
+  <div class="sidebar-footer">v1.0.0 · ETHICAL USE ONLY</div>
 </aside>
 
 <main class="main">
-  <div class="page-top">
-    <div>
-      <div class="page-eyebrow">// SECURITY DASHBOARD</div>
-      <div class="page-title">SCAN OVERVIEW</div>
-      <div class="page-sub">NETSCAMPRO · FUPRE FINAL YEAR PROJECT · OBEH EMMANUEL ONORIODE</div>
-    </div>
-    <div class="page-right">
-      <div class="refresh-indicator">AUTO-REFRESH <span id="countdown">30</span>s</div>
-      <a href="/scan/new" class="btn btn-primary">▶ NEW SCAN</a>
-    </div>
+  <div class="page-header">
+    <div class="section-label">// Dashboard</div>
+    <h1>Scan History</h1>
   </div>
 
-  <!-- Stat cards -->
+  <!-- Stats -->
   <div class="stats-grid">
-    <div class="stat-card s1">
-      <div class="stat-label">// TOTAL SCANS</div>
-      <div class="stat-num" id="stat-total">{{ sessions|length }}</div>
-      <div class="stat-sub">ALL SESSIONS</div>
+    <div class="stat-card total">
+      <div class="stat-num">{{ sessions|length }}</div>
+      <div class="stat-label">TOTAL SCANS</div>
     </div>
-    <div class="stat-card s2">
-      <div class="stat-label">// COMPLETED</div>
-      <div class="stat-num" id="stat-completed">{{ sessions|selectattr('status','equalto','completed')|list|length }}</div>
-      <div class="stat-sub">FINISHED SCANS</div>
+    <div class="stat-card completed">
+      <div class="stat-num">{{ sessions|selectattr('status','equalto','completed')|list|length }}</div>
+      <div class="stat-label">COMPLETED</div>
     </div>
-    <div class="stat-card s3">
-      <div class="stat-label">// RUNNING</div>
-      <div class="stat-num" id="stat-running">{{ sessions|selectattr('status','equalto','running')|list|length }}</div>
-      <div class="stat-sub">ACTIVE SCANS</div>
+    <div class="stat-card running">
+      <div class="stat-num">{{ sessions|selectattr('status','equalto','running')|list|length }}</div>
+      <div class="stat-label">RUNNING</div>
     </div>
-    <div class="stat-card s4">
-      <div class="stat-label">// ERRORS</div>
-      <div class="stat-num" id="stat-errors">{{ sessions|selectattr('status','equalto','error')|list|length }}</div>
-      <div class="stat-sub">FAILED SCANS</div>
+    <div class="stat-card errors">
+      <div class="stat-num">{{ sessions|selectattr('status','equalto','error')|list|length }}</div>
+      <div class="stat-label">ERRORS</div>
     </div>
   </div>
 
-  <!-- Mid row -->
-  <div class="mid-row">
-    <!-- Donut chart - real data -->
-    <div class="panel">
-      <div class="panel-head"><div><div class="panel-eyebrow">// FINDINGS</div><div class="panel-title">Severity Distribution</div></div></div>
-      <div class="donut-wrap">
-        <div class="donut-svg-wrap">
-          <svg width="120" height="120" viewBox="0 0 120 120" id="donut-svg">
-            <circle cx="60" cy="60" r="44" fill="none" stroke="#0f1a2e" stroke-width="16"/>
-            {% set total = total_findings if total_findings > 0 else 1 %}
-            {% set circ = 277 %}
-            {% set c_dash = (severity_counts.Critical / total * circ)|round(1) %}
-            {% set h_dash = (severity_counts.High / total * circ)|round(1) %}
-            {% set m_dash = (severity_counts.Medium / total * circ)|round(1) %}
-            {% set l_dash = (severity_counts.Low / total * circ)|round(1) %}
-            <circle cx="60" cy="60" r="44" fill="none" stroke="#C00000" stroke-width="16" stroke-dasharray="{{ c_dash }} {{ circ }}" stroke-dashoffset="0"/>
-            <circle cx="60" cy="60" r="44" fill="none" stroke="#E74C3C" stroke-width="16" stroke-dasharray="{{ h_dash }} {{ circ }}" stroke-dashoffset="-{{ c_dash }}"/>
-            <circle cx="60" cy="60" r="44" fill="none" stroke="#ff6b35" stroke-width="16" stroke-dasharray="{{ m_dash }} {{ circ }}" stroke-dashoffset="-{{ c_dash + h_dash }}"/>
-            <circle cx="60" cy="60" r="44" fill="none" stroke="#00c8ff" stroke-width="16" stroke-dasharray="{{ l_dash }} {{ circ }}" stroke-dashoffset="-{{ c_dash + h_dash + m_dash }}"/>
-          </svg>
-          <div class="donut-label">
-            <div class="donut-num" id="donut-total">{{ total_findings }}</div>
-            <div class="donut-sub">TOTAL</div>
-          </div>
-        </div>
-        <div class="donut-legend">
-          <div class="leg"><div class="leg-l"><div class="leg-dot" style="background:#C00000"></div>CRITICAL</div><div class="leg-v" id="leg-c">{{ severity_counts.Critical }}</div></div>
-          <div class="leg"><div class="leg-l"><div class="leg-dot" style="background:#E74C3C"></div>HIGH</div><div class="leg-v" id="leg-h">{{ severity_counts.High }}</div></div>
-          <div class="leg"><div class="leg-l"><div class="leg-dot" style="background:#ff6b35"></div>MEDIUM</div><div class="leg-v" id="leg-m">{{ severity_counts.Medium }}</div></div>
-          <div class="leg"><div class="leg-l"><div class="leg-dot" style="background:#00c8ff"></div>LOW</div><div class="leg-v" id="leg-l">{{ severity_counts.Low }}</div></div>
-        </div>
+  <!-- Sessions -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-label">// SCAN SESSIONS</div>
+        <div class="card-title">All Scans</div>
       </div>
-    </div>
-
-    <!-- Bar chart - real data -->
-    <div class="panel">
-      <div class="panel-head"><div><div class="panel-eyebrow">// ANALYSIS</div><div class="panel-title">Finding Breakdown</div></div></div>
-      <div class="bar-chart">
-        {% set total_b = total_findings if total_findings > 0 else 1 %}
-        <div class="bar-row">
-          <div class="bar-label-row"><span class="bar-lbl">CRITICAL</span><span class="bar-val" id="bar-c-val">{{ severity_counts.Critical }}</span></div>
-          <div class="bar-track"><div class="bar-fill c" id="bar-c" style="width:{{ (severity_counts.Critical / total_b * 100)|round(1) }}%"></div></div>
-        </div>
-        <div class="bar-row">
-          <div class="bar-label-row"><span class="bar-lbl">HIGH</span><span class="bar-val" id="bar-h-val">{{ severity_counts.High }}</span></div>
-          <div class="bar-track"><div class="bar-fill h" id="bar-h" style="width:{{ (severity_counts.High / total_b * 100)|round(1) }}%"></div></div>
-        </div>
-        <div class="bar-row">
-          <div class="bar-label-row"><span class="bar-lbl">MEDIUM</span><span class="bar-val" id="bar-m-val">{{ severity_counts.Medium }}</span></div>
-          <div class="bar-track"><div class="bar-fill m" id="bar-m" style="width:{{ (severity_counts.Medium / total_b * 100)|round(1) }}%"></div></div>
-        </div>
-        <div class="bar-row">
-          <div class="bar-label-row"><span class="bar-lbl">LOW</span><span class="bar-val" id="bar-l-val">{{ severity_counts.Low }}</span></div>
-          <div class="bar-track"><div class="bar-fill l" id="bar-l" style="width:{{ (severity_counts.Low / total_b * 100)|round(1) }}%"></div></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Activity feed -->
-    <div class="panel">
-      <div class="panel-head"><div><div class="panel-eyebrow">// LIVE FEED</div><div class="panel-title">Recent Activity</div></div></div>
-      <div class="feed" id="activity-feed">
-        {% if sessions %}
-          {% for s in sessions[:6] %}
-          <div class="feed-item">
-            <div class="feed-dot {{ s.status }}"></div>
-            <div>
-              <div class="feed-tgt">{{ s.target }}</div>
-              <div class="feed-meta">{{ s.id }} · {{ s.started_at[11:16] if s.started_at|length > 10 else '' }}</div>
-            </div>
-          </div>
-          {% endfor %}
-        {% else %}
-          <div style="font-size:10px;color:var(--text2);text-align:center;padding:20px 0">NO ACTIVITY YET</div>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-
-  <!-- Session log table -->
-  <div class="log-panel">
-    <div class="log-titlebar">
-      <div class="log-title-left">
-        <div class="tdots"><div class="tdot r"></div><div class="tdot y"></div><div class="tdot g"></div></div>
-        <span class="log-title">// SCAN_SESSIONS.LOG</span>
-      </div>
-      <a href="/scan/new" class="log-new">+ NEW_SCAN</a>
+      <a href="/scan/new" class="btn btn-primary">+ NEW SCAN</a>
     </div>
     {% if sessions %}
     <table>
       <thead>
-        <tr><th>Session ID</th><th>Target</th><th>Timestamp</th><th>Status</th><th>Actions</th></tr>
+        <tr>
+          <th>Session ID</th>
+          <th>Target</th>
+          <th>Started</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
       </thead>
-      <tbody id="sessions-table">
+      <tbody>
         {% for s in sessions %}
-        <tr id="row-{{ s.id }}">
-          <td class="td-id">{{ s.id }}</td>
-          <td class="td-target">{{ s.target }}</td>
-          <td class="td-time">{{ s.started_at[:19] }}</td>
-          <td><span class="spill {{ s.status }}">{{ s.status.upper() }}</span></td>
-          <td>
-            <div class="actions-cell">
-              <a href="/scan/{{ s.id }}" class="vbtn">VIEW →</a>
-              <button class="del-btn" onclick="deleteSession('{{ s.id }}')">DEL</button>
-            </div>
-          </td>
+        <tr>
+          <td><code>{{ s.id }}</code></td>
+          <td>{{ s.target }}</td>
+          <td style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text2)">{{ s.started_at[:19] }}</td>
+          <td><span class="badge-status {{ s.status }}">{{ s.status.upper() }}</span></td>
+          <td><a href="/scan/{{ s.id }}" class="btn btn-primary btn-sm">VIEW →</a></td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
     {% else %}
     <div class="empty-state">
-      <p style="font-size:28px;margin-bottom:12px">🛡️</p>
-      <p>NO SCAN SESSIONS FOUND</p>
-      <p style="margin-top:8px"><a href="/scan/new">LAUNCH FIRST SCAN →</a></p>
+      <p style="font-size:24px;margin-bottom:12px">🛡️</p>
+      <p>No scans yet.</p>
+      <p style="margin-top:8px"><a href="/scan/new">Start your first scan →</a></p>
     </div>
     {% endif %}
   </div>
 </main>
-
-<script>
-// ── AUTO-REFRESH COUNTDOWN ────────────────────────────
-let countdown = 30;
-const countdownEl = document.getElementById("countdown");
-
-setInterval(() => {
-  countdown--;
-  if (countdownEl) countdownEl.textContent = countdown;
-  if (countdown <= 0) {
-    countdown = 30;
-    refreshStats();
-  }
-}, 1000);
-
-// ── REFRESH STATS FROM API ────────────────────────────
-async function refreshStats() {
-  try {
-    const res = await fetch("/api/severity-counts");
-    const data = await res.json();
-
-    // Update stat cards
-    document.getElementById("stat-total").textContent = data.session_count;
-    document.getElementById("stat-completed").textContent = data.completed;
-    document.getElementById("stat-running").textContent = data.running;
-    document.getElementById("stat-errors").textContent = data.errors;
-
-    // Update donut legend
-    document.getElementById("leg-c").textContent = data.severity_counts.Critical;
-    document.getElementById("leg-h").textContent = data.severity_counts.High;
-    document.getElementById("leg-m").textContent = data.severity_counts.Medium;
-    document.getElementById("leg-l").textContent = data.severity_counts.Low;
-    document.getElementById("donut-total").textContent = data.total_findings;
-
-    // Update bar chart
-    const total = data.total_findings || 1;
-    const bars = [
-      {id:"bar-c", vid:"bar-c-val", key:"Critical"},
-      {id:"bar-h", vid:"bar-h-val", key:"High"},
-      {id:"bar-m", vid:"bar-m-val", key:"Medium"},
-      {id:"bar-l", vid:"bar-l-val", key:"Low"},
-    ];
-    bars.forEach(b => {
-      const val = data.severity_counts[b.key] || 0;
-      const el = document.getElementById(b.id);
-      const vel = document.getElementById(b.vid);
-      if (el) el.style.width = (val / total * 100).toFixed(1) + "%";
-      if (vel) vel.textContent = val;
-    });
-
-    // Update terminal session count
-    const ts = document.getElementById("term-sessions");
-    if (ts) ts.innerHTML = `<span class="ok">[+] Sessions: ${data.session_count}</span>`;
-
-  } catch(e) { console.error("Refresh error:", e); }
-}
-
-// ── DELETE SESSION ─────────────────────────────────────
-async function deleteSession(sessionId) {
-  if (!confirm(`Delete session ${sessionId}?`)) return;
-  try {
-    const res = await fetch(`/scan/${sessionId}/delete`, { method: "POST" });
-    const data = await res.json();
-    if (data.success) {
-      const row = document.getElementById(`row-${sessionId}`);
-      if (row) row.remove();
-      refreshStats();
-    }
-  } catch(e) { alert("Delete failed."); }
-}
-</script>
 </body>
 </html>
