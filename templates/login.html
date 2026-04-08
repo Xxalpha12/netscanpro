@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NetScan Pro — Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&family=VT323&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#060c14; --bg2:#0a1220; --bg3:#0f1a2e; --accent:#00c8ff; --accent2:#00ff9d; --accent3:#ff6b35; --red:#ff3c3c; --text:#a8c4d8; --text2:#3d5a70; --border:rgba(0,200,255,0.12); --glow:0 0 24px rgba(0,200,255,0.2); }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Share Tech Mono',monospace; background:var(--bg); color:var(--text); min-height:100vh; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+
+  body::before { content:''; position:fixed; inset:0; background-image:linear-gradient(rgba(0,200,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,200,255,0.03) 1px,transparent 1px); background-size:32px 32px; pointer-events:none; }
+  body::after { content:''; position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.06) 3px,rgba(0,0,0,0.06) 4px); pointer-events:none; animation:scanmove 12s linear infinite; }
+  @keyframes scanmove { from{background-position:0 0}to{background-position:0 100%} }
+
+  .login-wrap { position:relative; z-index:1; width:100%; max-width:420px; padding:20px; animation:fadeUp 0.6s ease both; }
+
+  /* Boot sequence */
+  .boot-seq { text-align:center; margin-bottom:32px; }
+  .boot-logo { font-family:'Rajdhani',sans-serif; font-size:42px; font-weight:700; color:#fff; letter-spacing:3px; text-shadow:0 0 40px rgba(0,200,255,0.6); }
+  .boot-logo span { color:var(--accent); }
+  .boot-tag { font-size:10px; letter-spacing:4px; color:var(--text2); margin-top:6px; }
+  .boot-lines { margin:16px 0; text-align:left; }
+  .boot-line { font-size:10px; line-height:2; opacity:0; animation:bootfade 0.3s ease forwards; }
+  .boot-line:nth-child(1){animation-delay:0.2s;color:var(--accent2);}
+  .boot-line:nth-child(2){animation-delay:0.5s;color:var(--accent2);}
+  .boot-line:nth-child(3){animation-delay:0.8s;color:var(--accent2);}
+  .boot-line:nth-child(4){animation-delay:1.1s;color:var(--accent3);}
+  .boot-line:nth-child(5){animation-delay:1.4s;color:var(--text2);}
+  @keyframes bootfade { to{opacity:1} }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)} }
+
+  /* Login card */
+  .login-card { background:rgba(10,18,32,0.95); border:1px solid var(--border); border-radius:8px; overflow:hidden; box-shadow:0 0 60px rgba(0,200,255,0.08); }
+  .card-titlebar { display:flex; align-items:center; gap:6px; padding:10px 16px; background:var(--bg3); border-bottom:1px solid var(--border); }
+  .tdot { width:9px; height:9px; border-radius:50%; }
+  .tdot.r{background:#ff5f56;} .tdot.y{background:#ffbd2e;} .tdot.g{background:#27c93f;}
+  .card-title { font-size:10px; color:var(--accent); letter-spacing:2px; margin-left:6px; }
+  .card-body { padding:28px; }
+  .card-label { font-size:8px; letter-spacing:4px; color:var(--text2); margin-bottom:6px; }
+  .card-head { font-family:'Rajdhani',sans-serif; font-size:20px; font-weight:700; color:#fff; margin-bottom:24px; }
+
+  .field { margin-bottom:18px; }
+  .field label { display:block; font-size:9px; letter-spacing:3px; color:var(--text2); margin-bottom:8px; }
+  .field input { width:100%; background:var(--bg3); border:1px solid var(--border); border-radius:4px; padding:11px 14px; color:var(--text); font-family:'Share Tech Mono',monospace; font-size:13px; outline:none; transition:all 0.2s; }
+  .field input:focus { border-color:var(--accent); box-shadow:var(--glow); }
+  .field input::placeholder { color:var(--text2); }
+
+  .error-box { background:rgba(255,60,60,0.08); border:1px solid rgba(255,60,60,0.3); border-radius:4px; padding:10px 14px; margin-bottom:18px; font-size:11px; color:var(--red); letter-spacing:1px; }
+
+  .btn-login { width:100%; padding:12px; background:rgba(0,200,255,0.1); color:var(--accent); border:1px solid rgba(0,200,255,0.35); border-radius:4px; font-family:'Share Tech Mono',monospace; font-size:12px; letter-spacing:2px; cursor:pointer; transition:all 0.2s; margin-top:4px; }
+  .btn-login:hover { background:rgba(0,200,255,0.18); box-shadow:var(--glow); }
+
+  .disclaimer { text-align:center; font-size:9px; color:var(--text2); margin-top:16px; letter-spacing:1px; line-height:1.8; }
+
+  /* Responsive */
+  @media(max-width:480px) { .login-wrap{padding:16px;} .boot-logo{font-size:32px;} }
+</style>
+</head>
+<body>
+<div class="login-wrap">
+  <div class="boot-seq">
+    <div class="boot-logo">NetScan<span>Pro</span></div>
+    <div class="boot-tag">FUPRE · FYP · OBEH EMMANUEL ONORIODE</div>
+    <div class="boot-lines">
+      <div class="boot-line">[+] Initializing security modules...</div>
+      <div class="boot-line">[+] Loading vulnerability database...</div>
+      <div class="boot-line">[+] Network interfaces ready</div>
+      <div class="boot-line">[!] Authentication required</div>
+      <div class="boot-line">[*] Enter credentials to proceed</div>
+    </div>
+  </div>
+
+  <div class="login-card">
+    <div class="card-titlebar">
+      <div class="tdot r"></div><div class="tdot y"></div><div class="tdot g"></div>
+      <span class="card-title">// SECURE ACCESS TERMINAL</span>
+    </div>
+    <div class="card-body">
+      <div class="card-label">// AUTHENTICATION</div>
+      <div class="card-head">Operator Login</div>
+
+      {% if error %}
+      <div class="error-box">⚠ {{ error }} — ACCESS DENIED</div>
+      {% endif %}
+
+      <form method="POST">
+        <div class="field">
+          <label>// USERNAME</label>
+          <input type="text" name="username" placeholder="Enter username" autocomplete="off" autofocus>
+        </div>
+        <div class="field">
+          <label>// PASSWORD</label>
+          <input type="password" name="password" placeholder="Enter password">
+        </div>
+        <button type="submit" class="btn-login">▶ AUTHENTICATE</button>
+      </form>
+
+      <div class="disclaimer">
+        ⚠ AUTHORIZED PERSONNEL ONLY<br>
+        Unauthorized access is strictly prohibited and monitored.
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

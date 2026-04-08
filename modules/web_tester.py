@@ -124,7 +124,15 @@ class WebTester:
                 svc = port.get("service", "")
                 if pnum in web_ports or "http" in svc.lower():
                     scheme = "https" if pnum in {443, 8443} else "http"
-                    url = f"{scheme}://{host['ip']}:{pnum}"
+                    # Use hostname if available (better for virtual hosting)
+                    host_addr = host.get("hostname", host["ip"])
+                    if host_addr in ("N/A", "Unknown", "", None):
+                        host_addr = host["ip"]
+                    # Use standard port if 80/443, otherwise include port
+                    if (scheme == "http" and pnum == 80) or (scheme == "https" and pnum == 443):
+                        url = f"{scheme}://{host_addr}"
+                    else:
+                        url = f"{scheme}://{host_addr}:{pnum}"
                     targets.append({"ip": host["ip"], "url": url})
                     break
         return targets

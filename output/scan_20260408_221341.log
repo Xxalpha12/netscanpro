@@ -1,0 +1,11 @@
+2026-04-08 22:13:44,867 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://10.48.141.193:5000
+2026-04-08 22:13:44,868 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+2026-04-08 22:15:36,407 [INFO] werkzeug: 127.0.0.1 - - [08/Apr/2026 22:15:36] "[32mGET / HTTP/1.1[0m" 302 -
+2026-04-08 22:15:36,605 [INFO] werkzeug: 127.0.0.1 - - [08/Apr/2026 22:15:36] "GET /login?next=http://127.0.0.1:5000/ HTTP/1.1" 200 -
+2026-04-08 22:15:36,848 [INFO] werkzeug: 127.0.0.1 - - [08/Apr/2026 22:15:36] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-04-08 22:15:48,264 [INFO] werkzeug: 127.0.0.1 - - [08/Apr/2026 22:15:48] "[32mPOST /login?next=http://127.0.0.1:5000/ HTTP/1.1[0m" 302 -
+2026-04-08 22:15:48,410 [INFO] werkzeug: 127.0.0.1 - - [08/Apr/2026 22:15:48] "GET / HTTP/1.1" 200 -
+2026-04-08 22:16:07,567 [INFO] werkzeug: 127.0.0.1 - - [08/Apr/2026 22:16:07] "GET /scan/new HTTP/1.1" 200 -

@@ -1,0 +1,1 @@
+2026-04-05 06:21:37,334 [WARNING] modules.network_scanner: python-nmap not installed. Install with: pip install python-nmap
