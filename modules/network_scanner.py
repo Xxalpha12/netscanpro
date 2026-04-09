@@ -1,277 +1,254 @@
 """
 NetScan Pro - Network Scanner Module
-Threaded port scanning with DNS resolution, URL/domain/CIDR support,
-banner grabbing, and graceful CIDR limits.
+Supports IP addresses, CIDR ranges, domain names, and URLs.
+Automatically falls back to socket scanning if nmap is unavailable.
 """
 
 import socket
-import ipaddress
-import threading
+import re
 from urllib.parse import urlparse
 from modules.logger import get_logger
 
 logger = get_logger(__name__)
 
-MAX_CIDR_HOSTS   = 50    # Safety cap for CIDR scans on Render / Termux
-SOCKET_TIMEOUT   = 2     # Seconds per port connection attempt
-BANNER_TIMEOUT   = 1     # Seconds to wait for service banner
-MAX_THREADS      = 100   # Concurrent threads for port scanning
-
-# ── NMAP CHECK ────────────────────────────────────────────────────────────────
-
+# Try nmap
 try:
     import nmap
-    _nm = nmap.PortScanner()
-    _nm.scan("127.0.0.1", arguments="-p 80 --open -Pn")
+    nm_test = nmap.PortScanner()
+    nm_test.scan("127.0.0.1", arguments="-p 80 --open")
     NMAP_AVAILABLE = True
+    logger.info("nmap detected — using full nmap scanner.")
 except Exception:
     NMAP_AVAILABLE = False
-    logger.warning("nmap not found — using threaded socket fallback.")
+    logger.warning("nmap not available — using socket fallback.")
 
 
-# ── SCANNER ───────────────────────────────────────────────────────────────────
+COMMON_PORTS = [
+    21, 22, 23, 25, 53, 80, 110, 135, 139, 143,
+    443, 445, 3306, 3389, 5432, 5900, 6379,
+    8080, 8443, 8888, 27017
+]
+
+SERVICE_MAP = {
+    21:"ftp", 22:"ssh", 23:"telnet", 25:"smtp",
+    53:"dns", 80:"http", 110:"pop3", 135:"msrpc",
+    139:"netbios-ssn", 143:"imap", 443:"https",
+    445:"microsoft-ds", 3306:"mysql", 3389:"rdp",
+    5432:"postgresql", 5900:"vnc", 6379:"redis",
+    8080:"http-alt", 8443:"https-alt", 8888:"http-alt",
+    27017:"mongodb"
+}
+
+
+def resolve_target(target: str) -> tuple:
+    """
+    Resolve any target format to (ip, hostname, original).
+    Supports: IP, CIDR, domain, http://..., https://...
+    Returns (resolved_ip, hostname, is_cidr)
+    """
+    original = target.strip()
+
+    # Strip URL scheme if present
+    if original.startswith(("http://", "https://")):
+        parsed = urlparse(original)
+        hostname = parsed.hostname or parsed.netloc.split(":")[0]
+    else:
+        hostname = original
+
+    # Check if CIDR range
+    is_cidr = "/" in hostname and not hostname.startswith("http")
+    if is_cidr:
+        return hostname, hostname, True
+
+    # Check if already an IP
+    ip_pattern = re.compile(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$")
+    if ip_pattern.match(hostname):
+        return hostname, hostname, False
+
+    # DNS resolution
+    try:
+        resolved_ip = socket.gethostbyname(hostname)
+        logger.info(f"Resolved {hostname} → {resolved_ip}")
+        return resolved_ip, hostname, False
+    except socket.gaierror as e:
+        logger.error(f"DNS resolution failed for '{hostname}': {e}")
+        return hostname, hostname, False
+
 
 class NetworkScanner:
 
     SCAN_PROFILES = {
         "quick":   "-Pn -sV --top-ports 100 -T4",
-        "full":    "-Pn -sV -sC -O -T4",
+        "full":    "-Pn -sV -sC -O -p- -T4",
         "stealth": "-Pn -sS -sV -T2 -f"
     }
 
     def __init__(self, target: str, port_range: str = "1-1024",
-                 scan_type: str = "quick", verbose: bool = False,
-                 progress_callback=None):
-        self.original_target   = target.strip()
-        self.port_range        = port_range
-        self.scan_type         = scan_type
-        self.verbose           = verbose
-        self.progress_callback = progress_callback   # optional fn(pct, msg)
-        self.hosts             = []
-        self.hostname, self.target = self._resolve_target(self.original_target)
+                 scan_type: str = "quick", verbose: bool = False):
+        self.original_target = target
+        self.port_range  = port_range
+        self.scan_type   = scan_type
+        self.verbose     = verbose
+        self.hosts       = []
 
-    # ── PUBLIC ────────────────────────────────────────────────────────────────
+        # Resolve target
+        self.resolved_ip, self.hostname, self.is_cidr = resolve_target(target)
+        logger.info(f"Target resolved: {target} → {self.resolved_ip}")
 
     def run(self) -> list:
-        if not self.target:
-            logger.error(f"Could not resolve: {self.original_target}")
-            return []
-
-        logger.info(f"Target: {self.original_target}  →  {self.target}")
-        self._progress(5, f"Target resolved to {self.target}")
-
         if NMAP_AVAILABLE:
             return self._scan_with_nmap()
         else:
-            logger.info("Using threaded socket scanner.")
             return self._scan_with_sockets()
 
-    def get_web_hosts(self) -> list:
-        web_ports = {80, 443, 8080, 8443, 8000, 8888}
-        result = []
-        for host in self.hosts:
-            for port in host["ports"]:
-                if port["port"] in web_ports or "http" in str(port.get("service", "")).lower():
-                    result.append({
-                        "ip":     host["ip"],
-                        "port":   port["port"],
-                        "scheme": "https" if port["port"] in {443, 8443} else "http"
-                    })
-        return result
-
-    # ── TARGET RESOLUTION ─────────────────────────────────────────────────────
-
-    def _resolve_target(self, raw: str):
-        """
-        Accepts IP, CIDR, bare hostname, or full URL.
-        Returns (hostname, resolved_ip_or_cidr).
-        """
-        if raw.startswith("http://") or raw.startswith("https://"):
-            parsed   = urlparse(raw)
-            hostname = parsed.hostname or raw
-        else:
-            hostname = raw.split("/")[0]
-
-        # Valid IP or CIDR — no DNS needed
-        try:
-            ipaddress.ip_network(hostname, strict=False)
-            return hostname, hostname
-        except ValueError:
-            pass
-
-        # Hostname — DNS resolve
-        try:
-            ip = socket.gethostbyname(hostname)
-            logger.info(f"DNS: {hostname} → {ip}")
-            return hostname, ip
-        except socket.gaierror as e:
-            logger.error(f"DNS failed for '{hostname}': {e}")
-            return hostname, None
-
-    # ── NMAP SCAN ─────────────────────────────────────────────────────────────
+    # ── NMAP ─────────────────────────────────────────────
 
     def _scan_with_nmap(self) -> list:
+        import nmap
         nm   = nmap.PortScanner()
         args = self.SCAN_PROFILES.get(self.scan_type, self.SCAN_PROFILES["quick"])
-        args += " -p-" if self.scan_type == "full" else f" -p {self.port_range}"
+        if self.scan_type != "quick":
+            args += f" -p {self.port_range}"
 
-        logger.info(f"Nmap: {args}")
-        self._progress(10, "Nmap scan started...")
+        scan_target = self.resolved_ip if not self.is_cidr else self.original_target
+        logger.info(f"nmap scan: {scan_target} args='{args}'")
 
         try:
-            nm.scan(hosts=self.target, arguments=args)
+            nm.scan(hosts=scan_target, arguments=args)
         except Exception as e:
-            logger.error(f"Nmap failed: {e}")
-            return []
+            logger.error(f"nmap failed: {e}. Falling back to sockets.")
+            return self._scan_with_sockets()
 
         hosts = []
-        total = len(nm.all_hosts()) or 1
-        for i, host_ip in enumerate(nm.all_hosts()):
-            host_data = {
-                "ip":       host_ip,
-                "hostname": self.hostname if self.hostname != host_ip else (nm[host_ip].hostname() or "N/A"),
-                "status":   nm[host_ip].state(),
-                "os":       "Unknown",
-                "ports":    []
-            }
-
-            if nm[host_ip].get("osmatch"):
-                host_data["os"] = nm[host_ip]["osmatch"][0]["name"]
-
-            for proto in nm[host_ip].all_protocols():
-                for port in nm[host_ip][proto].keys():
-                    p = nm[host_ip][proto][port]
-                    host_data["ports"].append({
-                        "port":     port,
-                        "protocol": proto,
-                        "state":    p.get("state"),
-                        "service":  p.get("name", "unknown"),
-                        "version":  f"{p.get('product','')} {p.get('version','')}".strip() or "N/A"
-                    })
-
+        for ip in nm.all_hosts():
+            host_data = self._parse_nmap_host(nm, ip)
             hosts.append(host_data)
-            pct = 10 + int((i + 1) / total * 20)
-            self._progress(pct, f"Scanned {host_ip} — {len(host_data['ports'])} port(s) open")
 
-        logger.info(f"Nmap done. {len(hosts)} host(s).")
+        logger.info(f"nmap complete. {len(hosts)} host(s) found.")
         self.hosts = hosts
         return hosts
 
-    # ── THREADED SOCKET SCAN ──────────────────────────────────────────────────
+    def _parse_nmap_host(self, nm, ip: str) -> dict:
+        host = nm[ip]
+        hostname = self.hostname if self.hostname != ip else host.hostname() or "N/A"
+
+        os_name = "Unknown"
+        if "osmatch" in host and host["osmatch"]:
+            os_name = host["osmatch"][0].get("name", "Unknown")
+
+        ports = []
+        for proto in host.all_protocols():
+            for port_num in sorted(host[proto].keys()):
+                port_info = host[proto][port_num]
+                ports.append({
+                    "port":     port_num,
+                    "protocol": proto,
+                    "state":    port_info.get("state", "unknown"),
+                    "service":  port_info.get("name", "unknown"),
+                    "version":  f"{port_info.get('product','')} {port_info.get('version','')}".strip() or "N/A"
+                })
+
+        return {
+            "ip": ip, "hostname": hostname,
+            "os": os_name, "status": host.state(),
+            "ports": ports
+        }
+
+    # ── SOCKET FALLBACK ───────────────────────────────────
 
     def _scan_with_sockets(self) -> list:
         """
-        Threaded TCP connect scan.
-        Up to MAX_THREADS concurrent connections — dramatically faster than sequential.
-        CIDR ranges are capped at MAX_CIDR_HOSTS to avoid timeout on free hosting.
+        TCP connect scanner with proper timeouts.
+        Works on cloud environments without nmap.
+        Supports domains, URLs, and IPs.
         """
-        # Build IP list
-        try:
-            network = ipaddress.ip_network(self.target, strict=False)
-            ips = [str(ip) for ip in network.hosts()]
-            if len(ips) > MAX_CIDR_HOSTS:
-                logger.warning(f"CIDR has {len(ips)} hosts — capping at {MAX_CIDR_HOSTS} for performance.")
-                ips = ips[:MAX_CIDR_HOSTS]
-        except ValueError:
-            ips = [self.target]
+        target_ip = self.resolved_ip.split("/")[0]  # Handle CIDR
+        logger.info(f"Socket scan: {target_ip} (resolved from {self.original_target})")
 
-        # Parse port range
-        try:
-            start, end = map(int, self.port_range.split("-"))
-        except ValueError:
-            start, end = 1, 1024
+        port_list = self._build_port_list()
+        open_ports = []
 
-        ports = list(range(start, end + 1))
-        total_work = len(ips) * len(ports)
-        done_count = [0]
-        lock = threading.Lock()
-
-        all_hosts = []
-
-        for ip_idx, ip in enumerate(ips):
-            open_ports = []
-            port_lock  = threading.Lock()
-            semaphore  = threading.Semaphore(MAX_THREADS)
-
-            def scan_port(p, ip=ip):
-                with semaphore:
-                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    sock.settimeout(SOCKET_TIMEOUT)
+        for port in port_list:
+            sock = None
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(2)  # 2 second timeout per port
+                result = sock.connect_ex((target_ip, port))
+                if result == 0:
+                    service = SERVICE_MAP.get(port, "unknown")
+                    # Try to grab banner for version info
+                    version = self._grab_banner(target_ip, port, service)
+                    open_ports.append({
+                        "port":     port,
+                        "protocol": "tcp",
+                        "state":    "open",
+                        "service":  service,
+                        "version":  version
+                    })
+                    if self.verbose:
+                        logger.info(f"  Open: {port}/tcp ({service})")
+            except Exception:
+                pass
+            finally:
+                if sock:
                     try:
-                        if sock.connect_ex((ip, p)) == 0:
-                            service = self._guess_service(p)
-                            banner  = self._grab_banner(sock, p)
-                            with port_lock:
-                                open_ports.append({
-                                    "port":     p,
-                                    "protocol": "tcp",
-                                    "state":    "open",
-                                    "service":  service,
-                                    "version":  banner or "N/A"
-                                })
-                    except (socket.timeout, OSError):
-                        pass
-                    finally:
                         sock.close()
-                    with lock:
-                        done_count[0] += 1
+                    except Exception:
+                        pass
 
-            # Launch all port threads for this IP
-            threads = [threading.Thread(target=scan_port, args=(p,), daemon=True) for p in ports]
-            for t in threads:
-                t.start()
-            for t in threads:
-                t.join()
+        hostname = self.hostname if self.hostname != target_ip else "N/A"
 
-            pct = 10 + int((ip_idx + 1) / len(ips) * 20)
-            self._progress(pct, f"Scanned {ip} — {len(open_ports)} open port(s)")
-
-            if open_ports:
-                open_ports.sort(key=lambda x: x["port"])
-                all_hosts.append({
-                    "ip":       ip,
-                    "hostname": self.hostname if ip == self.target else "N/A",
-                    "os":       "Unknown",
-                    "status":   "up",
-                    "ports":    open_ports
-                })
-
-        logger.info(f"Socket scan done. {len(all_hosts)} host(s) with open ports.")
-        self.hosts = all_hosts
-        return all_hosts
-
-    # ── BANNER GRAB ───────────────────────────────────────────────────────────
-
-    def _grab_banner(self, sock: socket.socket, port: int) -> str:
-        try:
-            if port in {80, 8080, 8000, 8888}:
-                sock.sendall(b"HEAD / HTTP/1.0\r\nHost: target\r\n\r\n")
-            elif port == 443:
-                return "HTTPS"
-            elif port == 22:
-                pass  # SSH sends banner unprompted
-            sock.settimeout(BANNER_TIMEOUT)
-            raw = sock.recv(256).decode("utf-8", errors="ignore").strip()
-            return raw.split("\n")[0][:80] if raw else ""
-        except Exception:
-            return ""
-
-    # ── HELPERS ───────────────────────────────────────────────────────────────
-
-    def _progress(self, pct: int, msg: str):
-        if self.progress_callback:
-            self.progress_callback(pct, msg)
-
-    @staticmethod
-    def _guess_service(port: int) -> str:
-        svc = {
-            21: "ftp",      22: "ssh",      23: "telnet",
-            25: "smtp",     53: "dns",      80: "http",
-            110: "pop3",    143: "imap",    443: "https",
-            445: "smb",     3306: "mysql",  3389: "rdp",
-            5432: "postgresql", 6379: "redis",
-            8080: "http-alt", 8443: "https-alt",
-            8000: "http-alt", 8888: "http-alt",
-            27017: "mongodb"
+        host = {
+            "ip":       target_ip,
+            "hostname": hostname,
+            "os":       "Unknown (socket scan)",
+            "status":   "up" if open_ports else "unknown",
+            "ports":    open_ports
         }
-        return svc.get(port, "unknown")
+
+        self.hosts = [host]
+        logger.info(f"Socket scan complete. {len(open_ports)} open port(s) on {target_ip}.")
+        return [host]
+
+    def _grab_banner(self, ip: str, port: int, service: str) -> str:
+        """Try to grab a service banner for version info."""
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(2)
+            sock.connect((ip, port))
+            if service in ("http", "http-alt"):
+                sock.send(b"HEAD / HTTP/1.0\r\nHost: " + ip.encode() + b"\r\n\r\n")
+            banner = sock.recv(256).decode("utf-8", errors="ignore").strip()
+            sock.close()
+            # Extract useful part
+            for line in banner.split("\n"):
+                if any(kw in line.lower() for kw in ("server:", "ssh-", "220 ", "ftp")):
+                    return line.strip()[:60]
+        except Exception:
+            pass
+        return "N/A"
+
+    def _build_port_list(self) -> list:
+        if self.scan_type == "quick":
+            return COMMON_PORTS
+        try:
+            start, end = self.port_range.split("-")
+            end = min(int(end), 1024)  # Cap on cloud
+            return list(range(int(start), end + 1))
+        except ValueError:
+            return COMMON_PORTS
+
+    def get_web_hosts(self) -> list:
+        web_hosts = []
+        web_ports = {80, 443, 8080, 8443, 8000, 8888}
+        for host in self.hosts:
+            for port in host.get("ports", []):
+                if port["port"] in web_ports or "http" in port.get("service", "").lower():
+                    web_hosts.append({
+                        "ip":     host["ip"],
+                        "port":   port["port"],
+                        "scheme": "https" if port["port"] in {443, 8443} else "http",
+                        "service": port.get("service")
+                    })
+                    break
+        return web_hosts
