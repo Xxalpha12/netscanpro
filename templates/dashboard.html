@@ -182,10 +182,9 @@
     <div class="nav-section">// NAVIGATION</div>
     <a href="/" class="nav-link {% if page=='home' %}active{% endif %}">Dashboard</a>
     <a href="/scan/new" class="nav-link {% if page=='new_scan' %}active{% endif %}">New Scan</a>
-    <a href="/export/csv" class="nav-link {% if page=='reports' %}active{% endif %}">Reports</a>
+    <a href="/export/csv" class="nav-link">Reports</a>
     <div class="nav-section">// SYSTEM</div>
-    <a href="/compare" class="nav-link {% if page=='compare' %}active{% endif %}">Compare Scans</a>
-    <a href="/logout" class="nav-link">Logout</a>
+    <a href="/compare" class="nav-link">Compare Scans</a>
   </nav>
   <div class="term-widget">
     <div class="term-titlebar">
@@ -362,14 +361,17 @@
 
 <script>
 // ── AUTO-REFRESH COUNTDOWN ────────────────────────────
-let countdown = 30;
+let countdown = 10;
 const countdownEl = document.getElementById("countdown");
+
+// Refresh immediately on page load
+refreshStats();
 
 setInterval(() => {
   countdown--;
   if (countdownEl) countdownEl.textContent = countdown;
   if (countdown <= 0) {
-    countdown = 30;
+    countdown = 10;
     refreshStats();
   }
 }, 1000);
