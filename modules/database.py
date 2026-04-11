@@ -184,6 +184,14 @@ class Database:
     def save_web_findings(self, session_id: str, findings: list):
         cursor = self.conn.cursor()
         for f in findings:
+            # Skip if exact same finding already saved for this session
+            cursor.execute(
+                """SELECT id FROM web_findings
+                   WHERE session_id=? AND host_ip=? AND vuln_type=? AND url=?""",
+                (session_id, f.get("host_ip"), f.get("vuln_type"), f.get("url"))
+            )
+            if cursor.fetchone():
+                continue
             cursor.execute(
                 """INSERT INTO web_findings
                    (session_id, host_ip, url, vuln_type, severity,
@@ -206,6 +214,14 @@ class Database:
     def save_cve_findings(self, session_id: str, findings: list):
         cursor = self.conn.cursor()
         for f in findings:
+            # Skip if same CVE already saved for this session+host+port
+            cursor.execute(
+                """SELECT id FROM cve_findings
+                   WHERE session_id=? AND host_ip=? AND cve_id=? AND port=?""",
+                (session_id, f.get("host_ip"), f.get("cve_id"), f.get("port"))
+            )
+            if cursor.fetchone():
+                continue
             cursor.execute(
                 """INSERT INTO cve_findings
                    (session_id, host_ip, port, service, cve_id,

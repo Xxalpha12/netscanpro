@@ -69,8 +69,17 @@ class CVEScanner:
                             f"{ip}:{port} ({service}) CVSS: {cve['cvss_score']}"
                         )
 
-        logger.info(f"CVE scan complete. {len(findings)} finding(s).")
-        return findings
+        # Deduplicate by cve_id + host_ip + port
+        seen = set()
+        deduped = []
+        for f in findings:
+            key = (f["cve_id"], f["host_ip"], f["port"])
+            if key not in seen:
+                seen.add(key)
+                deduped.append(f)
+
+        logger.info(f"CVE scan complete. {len(deduped)} finding(s).")
+        return deduped
 
     def _lookup_cve(self, query: str) -> list:
         """Query NVD API for CVEs matching a service/version keyword string."""

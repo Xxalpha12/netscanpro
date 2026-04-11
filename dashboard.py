@@ -195,15 +195,8 @@ def run_scan():
 
             _set_progress(75, f"All scans done — Web: {len(web_findings)} | CVE: {len(cve_findings)}")
 
-            # Final save (catches anything not yet written by incremental saves)
-            db.save_web_findings(session_id, [
-                f for f in web_findings
-                if f not in (active_scans[session_id].get("_saved_web") or [])
-            ])
-            db.save_cve_findings(session_id, [
-                f for f in cve_findings
-                if f not in (active_scans[session_id].get("_saved_cve") or [])
-            ])
+            # Findings already saved incrementally inside run_web() and run_cve()
+            # No double-save needed
 
             # ── Report ────────────────────────────────────────────────────────
             _set_progress(80, "Generating report...")

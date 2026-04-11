@@ -85,7 +85,15 @@ class WebScanner:
                 if self.verbose and host_findings:
                     logger.info(f"  {url} → {len(host_findings)} header issue(s) found")
 
-        return findings
+        # Deduplicate by host_ip + vuln_type
+        seen = set()
+        deduped = []
+        for f in findings:
+            key = (f["host_ip"], f["vuln_type"])
+            if key not in seen:
+                seen.add(key)
+                deduped.append(f)
+        return deduped
 
     def _check_headers(self, url, ip):
         """
