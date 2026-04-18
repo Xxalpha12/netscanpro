@@ -321,12 +321,27 @@ def view_scan(session_id):
     # Risk scoring
     risk_scores = score_all_hosts(hosts, web_findings, cve_findings)
 
+    # Get report files for this session
+    import glob
+    output_dir = os.path.join(os.path.dirname(__file__), "output")
+    report_files = []
+    if os.path.exists(output_dir):
+        for ext in ["html", "pdf"]:
+            pattern = os.path.join(output_dir, f"cyberscanpro_report_{session_id}_*.{ext}")
+            report_files += [os.path.basename(f) for f in glob.glob(pattern)]
+        # Also check old naming convention
+        for ext in ["html", "pdf"]:
+            pattern = os.path.join(output_dir, f"*_{session_id}_*.{ext}")
+            report_files += [os.path.basename(f) for f in glob.glob(pattern)
+                           if os.path.basename(f) not in report_files]
+
     return render_template(
         "scan_detail.html",
         session=sess, hosts=hosts,
         web_findings=web_findings, cve_findings=cve_findings,
         severity_counts=severity_counts, total_findings=total_findings,
         risk_scores=risk_scores,
+        report_files=report_files,
         page="results", title=f"Scan {session_id}"
     )
 

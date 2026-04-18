@@ -112,16 +112,16 @@
 <aside class="sidebar">
   <div class="sidebar-logo">
     <div class="logo-top">// SECURITY ASSESSMENT PLATFORM</div>
-    <div class="logo-main">NetScan<span>Pro</span></div>
+    <div class="logo-main">CyberScan<span>Pro</span></div>
     <div class="logo-tag">FUPRE · FYP · OBEH E.O</div>
   </div>
   <nav>
     <div class="nav-section">// NAVIGATION</div>
     <a href="/" class="nav-link">Dashboard</a>
     <a href="/scan/new" class="nav-link">New Scan</a>
-    <a href="#" class="nav-link">Reports</a>
+    <a href="/export/csv" class="nav-link">Reports</a>
     <div class="nav-section">// CURRENT</div>
-    <a href="#" class="nav-link active">Scan Results</a>
+    <a href="#" class="nav-link active">Results</a>
   </nav>
   <div class="sidebar-footer">ETHICAL USE ONLY · v1.0.0</div>
 </aside>
@@ -144,6 +144,40 @@
     </div>
     {% endfor %}
   </div>
+
+  <!-- Report Downloads -->
+  {% if report_files %}
+  <div class="panel" style="margin-bottom:14px;">
+    <div class="panel-titlebar">
+      <div class="panel-title-left">
+        <div class="tdots"><div class="tdot r"></div><div class="tdot y"></div><div class="tdot g"></div></div>
+        <span class="panel-title">// REPORTS</span>
+      </div>
+    </div>
+    <div style="padding:14px 16px; display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+      {% for f in report_files %}
+        <a href="/report/{{ f }}" target="_blank"
+           style="display:inline-flex; align-items:center; gap:8px; padding:10px 18px;
+                  background:rgba(0,200,255,0.08); border:1px solid rgba(0,200,255,0.3);
+                  border-radius:4px; color:var(--accent); text-decoration:none;
+                  font-size:11px; letter-spacing:1px; transition:all 0.2s;">
+          {% if f.endswith('.pdf') %}📄 PDF REPORT{% else %}🌐 HTML REPORT{% endif %}
+        </a>
+      {% endfor %}
+      <a href="/scan/{{ session.id }}/checklist" target="_blank"
+         style="display:inline-flex; align-items:center; gap:8px; padding:10px 18px;
+                background:rgba(0,255,157,0.08); border:1px solid rgba(0,255,157,0.3);
+                border-radius:4px; color:#00ff9d; text-decoration:none;
+                font-size:11px; letter-spacing:1px; transition:all 0.2s;">
+        ✅ REMEDIATION CHECKLIST
+      </a>
+    </div>
+  </div>
+  {% else %}
+  <div style="padding:10px 0; font-size:11px; color:var(--text2);">
+    No report files found. Reports are generated at end of scan.
+  </div>
+  {% endif %}
 
   <!-- Hosts -->
   <div class="panel">
