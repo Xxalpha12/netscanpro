@@ -21,12 +21,12 @@ from modules.logger import get_logger
 logger = get_logger(__name__)
 
 BANNER = r"""
-  _   _      _   ____                      ____            
- | \ | | ___| |_/ ___|  ___ __ _ _ __    |  _ \ _ __ ___  
- |  \| |/ _ \ __\___ \ / __/ _` | '_ \   | |_) | '__/ _ \ 
- | |\  |  __/ |_ ___) | (_| (_| | | | |  |  __/| | | (_) |
- |_| \_|\___|\__|____/ \___\__,_|_| |_|  |_|   |_|  \___/ 
-                                                            
+   ____      _               ____                  ____
+  / ___|   _| |__   ___ _ __/ ___|  ___ __ _ _ __ |  _ \ _ __ ___
+ | |  | | | | '_ \ / _ \ '__\___ \ / __/ _` | '_ \| |_) | '__/ _ \
+ | |__| |_| | |_) |  __/ |   ___) | (_| (_| | | | |  __/| | | (_) |
+  \____\__, |_.__/ \___|_|  |____/ \___\__,_|_| |_|_|   |_|  \___/
+       |___/
   Automated Vulnerability Assessment Tool | FUPRE FYP
   Author: Obeh Emmanuel Onoriode
   Matric Number: Cos/9581/2022 | Use responsibly & ethically only.
@@ -184,6 +184,43 @@ def launch_dashboard(port):
 
 if __name__ == "__main__":
     args = parse_args()
+
+    if args.sync:
+        import requests, json
+        from modules.database import Database
+        db = Database()
+        sessions = db.get_all_sessions()
+        if not sessions:
+            print("[!] No local scan sessions found to sync.")
+            sys.exit(1)
+        # Sync the most recent completed session
+        last = next((s for s in sessions if s["status"] == "completed"), sessions[0])
+        sid = last["id"]
+        payload = {
+            "session_id":   sid,
+            "target":       last["target"],
+            "started_at":   last.get("started_at",""),
+            "completed_at": last.get("completed_at",""),
+            "hosts":        db.get_hosts(sid),
+            "web_findings": db.get_web_findings(sid),
+            "cve_findings": db.get_cve_findings(sid),
+        }
+        db.close()
+        url = args.sync.rstrip("/") + "/api/sync"
+        headers = {"Content-Type": "application/json"}
+        if args.sync_key:
+            headers["X-API-Key"] = args.sync_key
+        print(f"[*] Syncing session {sid} ({last['target']}) to {url}...")
+        try:
+            r = requests.post(url, json=payload, headers=headers, timeout=30)
+            data = r.json()
+            if data.get("success"):
+                print(f"[+] Sync successful! View at {args.sync}/scan/{sid}")
+            else:
+                print(f"[!] Sync failed: {data.get('error')}")
+        except Exception as e:
+            print(f"[!] Sync error: {e}")
+        sys.exit(0)
 
     if args.dashboard:
         launch_dashboard(args.port)

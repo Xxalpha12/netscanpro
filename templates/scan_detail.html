@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{{ title }} — CyberScan Pro</title>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&family=VT323&display=swap" rel="stylesheet">
@@ -143,6 +144,30 @@
       <div class="sev-num">{{ severity_counts[sev] }}</div>
     </div>
     {% endfor %}
+  </div>
+
+  <!-- Screenshot -->
+  <div class="panel" style="margin-bottom:14px;" id="screenshot-panel">
+    <div class="panel-titlebar">
+      <div class="panel-title-left">
+        <div class="tdots"><div class="tdot r"></div><div class="tdot y"></div><div class="tdot g"></div></div>
+        <span class="panel-title">// TARGET SCREENSHOT</span>
+      </div>
+      <button onclick="captureScreenshot()" id="ss-btn"
+        style="padding:5px 14px; background:rgba(0,200,255,0.1); border:1px solid rgba(0,200,255,0.3);
+               border-radius:4px; color:var(--accent); font-size:10px; letter-spacing:1px; cursor:pointer;">
+        📸 CAPTURE
+      </button>
+    </div>
+    <div style="padding:14px 16px;" id="screenshot-container">
+      <img id="screenshot-img" src="/screenshots/{{ session.id }}"
+           style="width:100%; border-radius:4px; border:1px solid var(--border); display:none;"
+           onload="this.style.display='block'"
+           onerror="this.style.display='none'">
+      <div id="ss-placeholder" style="color:var(--text2); font-size:11px; padding:10px 0;">
+        No screenshot yet. Click CAPTURE to take one.
+      </div>
+    </div>
   </div>
 
   <!-- Report Downloads -->
@@ -288,6 +313,29 @@ function toggleFinding(el) {
   const body = el.nextElementSibling;
   body.classList.toggle("open");
 }
+async function captureScreenshot() {
+    const btn = document.getElementById("ss-btn");
+    btn.textContent = "⏳ CAPTURING...";
+    btn.disabled = true;
+    try {
+      const res = await fetch("/api/screenshot/{{ session.id }}", {method:"POST"});
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById("screenshot-img").src = data.url + "?t=" + Date.now();
+        document.getElementById("screenshot-img").style.display = "block";
+        document.getElementById("ss-placeholder").style.display = "none";
+        btn.textContent = "✅ CAPTURED";
+      } else {
+        btn.textContent = "❌ FAILED - RETRY";
+        btn.disabled = false;
+      }
+    } catch(e) {
+      btn.textContent = "❌ ERROR - RETRY";
+      btn.disabled = false;
+    }
+  }
+  // Auto-load screenshot if exists
+  document.getElementById("screenshot-img").src = "/screenshots/{{ session.id }}?t=" + Date.now();
 </script>
 </body>
 </html>

@@ -2,167 +2,179 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Compare Scans — CyberScan Pro</title>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&family=VT323&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#060c14; --bg2:#0a1220; --bg3:#0f1a2e; --accent:#00c8ff; --accent2:#00ff9d; --accent3:#ff6b35; --accent4:#a855f7; --red:#ff3c3c; --text:#a8c4d8; --text2:#3d5a70; --border:rgba(0,200,255,0.12); --glow:0 0 24px rgba(0,200,255,0.2); }
+  :root { --bg:#060c14; --bg2:#0a1220; --bg3:#0f1a2e; --accent:#00c8ff; --accent2:#00ff9d; --accent3:#ff6b35; --text:#a8c4d8; --text2:#3d5a70; --border:rgba(0,200,255,0.12); }
   * { box-sizing:border-box; margin:0; padding:0; }
-  body { font-family:'Share Tech Mono',monospace; background:var(--bg); color:var(--text); min-height:100vh; display:flex; overflow-x:hidden; }
-  body::before { content:''; position:fixed; inset:0; background-image:linear-gradient(rgba(0,200,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,200,255,0.03) 1px,transparent 1px); background-size:32px 32px; pointer-events:none; }
-  body::after { content:''; position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.06) 3px,rgba(0,0,0,0.06) 4px); pointer-events:none; }
-
-  .sidebar { position:fixed; top:0; left:0; width:250px; height:100vh; background:rgba(10,18,32,0.97); border-right:1px solid var(--border); display:flex; flex-direction:column; z-index:10; }
-  .sidebar-logo { padding:24px 20px 18px; border-bottom:1px solid var(--border); }
-  .logo-top { font-size:9px; letter-spacing:4px; color:var(--text2); margin-bottom:10px; }
-  .logo-main { font-family:'Rajdhani',sans-serif; font-size:26px; font-weight:700; color:#fff; letter-spacing:2px; text-shadow:0 0 30px rgba(0,200,255,0.5); }
-  .logo-main span { color:var(--accent); }
-  .logo-tag { display:inline-block; margin-top:8px; font-size:9px; letter-spacing:2px; color:var(--accent); border:1px solid rgba(0,200,255,0.3); padding:3px 8px; border-radius:2px; }
-  .sidebar nav { padding:8px 0; flex:1; }
-  .nav-section { font-size:8px; letter-spacing:4px; color:var(--text2); padding:12px 20px 6px; }
+  body { font-family:'Share Tech Mono',monospace; background:var(--bg); color:var(--text); min-height:100vh; display:flex; }
+  .sidebar { width:220px; background:var(--bg2); border-right:1px solid var(--border); padding:24px 0; flex-shrink:0; }
+  .sidebar-logo { padding:0 20px 20px; border-bottom:1px solid var(--border); margin-bottom:20px; }
+  .sidebar-logo h2 { font-family:'Rajdhani',sans-serif; font-size:22px; font-weight:700; color:#fff; }
+  .sidebar-logo h2 span { color:var(--accent); }
+  .sidebar-logo p { font-size:9px; color:var(--text2); }
+  .nav-section { padding:6px 20px; font-size:8px; letter-spacing:3px; color:var(--text2); margin-top:10px; }
   .nav-link { display:flex; align-items:center; gap:10px; padding:9px 20px; color:var(--text2); text-decoration:none; font-size:11px; letter-spacing:1px; transition:all 0.2s; border-left:2px solid transparent; }
-  .nav-link::before { content:'> '; color:var(--text2); }
-  .nav-link:hover { color:var(--accent); background:rgba(0,200,255,0.04); border-left-color:rgba(0,200,255,0.4); }
-  .nav-link.active { color:var(--accent); background:rgba(0,200,255,0.06); border-left-color:var(--accent); }
-  .nav-link.active::before { content:'█ '; color:var(--accent); }
-  .sidebar-footer { padding:12px 20px; border-top:1px solid var(--border); font-size:9px; color:var(--text2); margin-top:auto; }
-
-  .main { margin-left:250px; flex:1; padding:28px 32px; position:relative; z-index:1; }
-  .page-eyebrow { font-size:9px; letter-spacing:4px; color:var(--accent2); margin-bottom:6px; }
-  .page-title { font-family:'Rajdhani',sans-serif; font-size:30px; font-weight:700; color:#fff; letter-spacing:1px; margin-bottom:24px; }
-
-  .select-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px; }
-  .field label { display:block; font-size:9px; letter-spacing:3px; color:var(--text2); margin-bottom:8px; }
-  .field select { width:100%; background:var(--bg3); border:1px solid var(--border); border-radius:4px; padding:10px 14px; color:var(--text); font-family:'Share Tech Mono',monospace; font-size:11px; outline:none; transition:all 0.2s; }
-  .field select:focus { border-color:var(--accent); box-shadow:var(--glow); }
-  .field select option { background:var(--bg3); }
-
-  .btn { display:inline-flex; align-items:center; gap:6px; padding:10px 20px; border-radius:3px; font-family:'Share Tech Mono',monospace; font-size:11px; letter-spacing:1px; cursor:pointer; border:none; transition:all 0.2s; }
-  .btn-primary { background:rgba(0,200,255,0.08); color:var(--accent); border:1px solid rgba(0,200,255,0.35); }
-  .btn-primary:hover { background:rgba(0,200,255,0.16); box-shadow:var(--glow); }
-
-  .compare-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:24px; }
-  .compare-col { background:var(--bg2); border:1px solid var(--border); border-radius:6px; overflow:hidden; }
-  .col-header { padding:14px 18px; background:var(--bg3); border-bottom:1px solid var(--border); }
-  .col-session { font-size:10px; color:var(--accent); letter-spacing:2px; }
-  .col-target { font-family:'Rajdhani',sans-serif; font-size:18px; font-weight:700; color:#fff; margin-top:4px; }
-  .col-body { padding:18px; }
-  .metric-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid rgba(0,200,255,0.04); font-size:11px; }
-  .metric-row:last-child { border:none; }
-  .metric-key { color:var(--text2); letter-spacing:1px; }
-  .metric-val { font-family:'VT323',monospace; font-size:22px; color:var(--accent); }
-  .metric-val.bad { color:var(--red); }
-  .metric-val.warn { color:var(--accent3); }
-  .metric-val.good { color:var(--accent2); }
-  .sev-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
-  .sev-chip { font-size:9px; padding:3px 10px; border-radius:20px; letter-spacing:1px; }
-  .sev-chip.c{background:rgba(192,0,0,0.1);color:#ff4444;border:1px solid rgba(192,0,0,0.3);}
-  .sev-chip.h{background:rgba(231,76,60,0.1);color:#E74C3C;border:1px solid rgba(231,76,60,0.3);}
-  .sev-chip.m{background:rgba(255,107,53,0.1);color:var(--accent3);border:1px solid rgba(255,107,53,0.3);}
-  .sev-chip.l{background:rgba(0,200,255,0.08);color:var(--accent);border:1px solid rgba(0,200,255,0.2);}
-  .loading { text-align:center; padding:40px; font-size:11px; color:var(--text2); letter-spacing:2px; display:none; }
-  .blink { animation:blink 1s step-end infinite; }
-  @keyframes blink { 50%{opacity:0} }
-  @keyframes fadeUp { from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)} }
-  .main { animation:fadeUp 0.5s ease both; }
+  .nav-link:hover, .nav-link.active { color:var(--accent); border-left-color:var(--accent); }
+  .main { flex:1; padding:32px; overflow-y:auto; }
+  .page-eyebrow { font-size:8px; letter-spacing:4px; color:var(--text2); margin-bottom:8px; }
+  .page-title { font-family:'Rajdhani',sans-serif; font-size:30px; font-weight:700; color:#fff; margin-bottom:24px; }
+  .card { background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:20px; margin-bottom:20px; }
+  .card-title { font-family:'Rajdhani',sans-serif; font-size:15px; font-weight:700; color:#fff; margin-bottom:14px; border-bottom:1px solid var(--border); padding-bottom:8px; }
+  .select-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  select { width:100%; background:var(--bg3); border:1px solid var(--border); border-radius:4px; padding:10px 12px; color:var(--text); font-family:'Share Tech Mono',monospace; font-size:11px; outline:none; }
+  select:focus { border-color:var(--accent); }
+  .btn { padding:10px 24px; background:rgba(0,200,255,0.1); color:var(--accent); border:1px solid rgba(0,200,255,0.35); border-radius:4px; font-family:'Share Tech Mono',monospace; font-size:11px; letter-spacing:2px; cursor:pointer; transition:all 0.2s; }
+  .btn:hover { background:rgba(0,200,255,0.2); }
+  .compare-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  .compare-col { background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:18px; }
+  .col-header { font-family:'Rajdhani',sans-serif; font-size:16px; font-weight:700; color:var(--accent); margin-bottom:14px; padding-bottom:8px; border-bottom:1px solid var(--border); }
+  .stat-row { display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid rgba(0,200,255,0.05); font-size:11px; }
+  .stat-label { color:var(--text2); }
+  .stat-val { color:#fff; font-weight:bold; }
+  .sev-badge { display:inline-block; padding:2px 10px; border-radius:3px; font-size:10px; font-weight:bold; }
+  .Critical { background:rgba(192,0,0,0.2); color:#e74c3c; border:1px solid rgba(192,0,0,0.4); }
+  .High { background:rgba(230,100,0,0.2); color:#e67e22; border:1px solid rgba(230,100,0,0.4); }
+  .Medium { background:rgba(230,180,0,0.2); color:#f1c40f; border:1px solid rgba(230,180,0,0.4); }
+  .Low { background:rgba(0,150,220,0.2); color:#2980b9; border:1px solid rgba(0,150,220,0.4); }
+  .winner { color:var(--accent2) !important; }
+  .loser { color:#e74c3c !important; }
+  .diff-bar { height:6px; border-radius:3px; margin-top:4px; }
+  #compare-result { display:none; }
+  .verdict { text-align:center; padding:16px; border-radius:6px; margin-bottom:20px; font-family:'Rajdhani',sans-serif; font-size:18px; font-weight:700; }
+  .verdict.safer { background:rgba(0,255,157,0.08); border:1px solid rgba(0,255,157,0.3); color:var(--accent2); }
+  .verdict.riskier { background:rgba(255,60,60,0.08); border:1px solid rgba(255,60,60,0.3); color:#e74c3c; }
+  .verdict.equal { background:rgba(0,200,255,0.08); border:1px solid rgba(0,200,255,0.3); color:var(--accent); }
+  .loading { text-align:center; padding:40px; color:var(--text2); font-size:12px; }
 </style>
 </head>
 <body>
 <aside class="sidebar">
   <div class="sidebar-logo">
-    <div class="logo-top">// SECURITY ASSESSMENT PLATFORM</div>
-    <div class="logo-main">CyberScan<span>Pro</span></div>
-    <div class="logo-tag">FUPRE · FYP · OBEH E.O</div>
+    <h2>CyberScan<span>Pro</span></h2>
+    <p>FUPRE · FYP · OBEH E.O</p>
   </div>
-  <nav>
-    <div class="nav-section">// NAVIGATION</div>
-    <a href="/" class="nav-link">Dashboard</a>
-    <a href="/scan/new" class="nav-link">New Scan</a>
-    <a href="/schedules" class="nav-link">Schedules</a>
-    <a href="/compare" class="nav-link active">Compare Scans</a>
-    <a href="/export/csv" class="nav-link">Reports</a>
-  </nav>
-  <div class="sidebar-footer">ETHICAL USE ONLY · v1.0.0</div>
+  <div class="nav-section">// NAVIGATION</div>
+  <a href="/" class="nav-link">Dashboard</a>
+  <a href="/scan/new" class="nav-link">New Scan</a>
+  <a href="/compare" class="nav-link active">Compare Scans</a>
+  <a href="/schedules" class="nav-link">Schedules</a>
+  <a href="/export/csv" class="nav-link">Reports</a>
+  <div class="nav-section">// ACCOUNT</div>
+  <a href="/logout" class="nav-link">Logout</a>
 </aside>
 
-<main class="main">
+<div class="main">
   <div class="page-eyebrow">// SCAN COMPARISON</div>
-  <div class="page-title">COMPARE SESSIONS</div>
+  <div class="page-title">Compare Scans</div>
 
-  <div class="select-row">
-    <div class="field">
-      <label>// SESSION A</label>
-      <select id="s1">
-        <option value="">Select session...</option>
-        {% for s in sessions %}
-        <option value="{{ s.id }}">{{ s.id }} — {{ s.target }} ({{ s.started_at[:10] }})</option>
-        {% endfor %}
-      </select>
+  <!-- Selection -->
+  <div class="card">
+    <div class="card-title">// SELECT TWO SCANS TO COMPARE</div>
+    <div class="select-grid">
+      <div>
+        <label style="font-size:9px;letter-spacing:3px;color:var(--text2);display:block;margin-bottom:6px;">// SCAN A</label>
+        <select id="scan-a">
+          <option value="">— Select Scan —</option>
+          {% for s in sessions %}
+          <option value="{{ s.id }}">{{ s.target }} — {{ s.started_at[:10] }} [{{ s.status }}]</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label style="font-size:9px;letter-spacing:3px;color:var(--text2);display:block;margin-bottom:6px;">// SCAN B</label>
+        <select id="scan-b">
+          <option value="">— Select Scan —</option>
+          {% for s in sessions %}
+          <option value="{{ s.id }}">{{ s.target }} — {{ s.started_at[:10] }} [{{ s.status }}]</option>
+          {% endfor %}
+        </select>
+      </div>
     </div>
-    <div class="field">
-      <label>// SESSION B</label>
-      <select id="s2">
-        <option value="">Select session...</option>
-        {% for s in sessions %}
-        <option value="{{ s.id }}">{{ s.id }} — {{ s.target }} ({{ s.started_at[:10] }})</option>
-        {% endfor %}
-      </select>
-    </div>
+    <br>
+    <button class="btn" onclick="runCompare()">▶ COMPARE SCANS</button>
+    <span id="compare-msg" style="margin-left:12px;font-size:10px;color:var(--accent3);"></span>
   </div>
 
-  <button class="btn btn-primary" onclick="compare()">▶ COMPARE</button>
-
-  <div class="loading" id="loading">LOADING<span class="blink">_</span></div>
-
-  <div class="compare-grid" id="compare-result" style="display:none">
-    <div class="compare-col" id="col-a"></div>
-    <div class="compare-col" id="col-b"></div>
+  <!-- Results -->
+  <div id="compare-result">
+    <div id="verdict-box"></div>
+    <div class="compare-grid">
+      <div class="compare-col" id="col-a"></div>
+      <div class="compare-col" id="col-b"></div>
+    </div>
   </div>
-</main>
+</div>
 
 <script>
-async function compare() {
-  const s1 = document.getElementById("s1").value;
-  const s2 = document.getElementById("s2").value;
-  if (!s1 || !s2) { alert("Please select two sessions."); return; }
-  if (s1 === s2) { alert("Please select two different sessions."); return; }
+async function runCompare() {
+  const s1 = document.getElementById("scan-a").value;
+  const s2 = document.getElementById("scan-b").value;
+  const msg = document.getElementById("compare-msg");
 
-  document.getElementById("loading").style.display = "block";
-  document.getElementById("compare-result").style.display = "none";
+  if (!s1 || !s2) { msg.textContent = "Select two scans."; return; }
+  if (s1 === s2) { msg.textContent = "Select two different scans."; return; }
 
-  const res = await fetch(`/api/compare?s1=${s1}&s2=${s2}`);
+  msg.textContent = "Loading...";
+
+  const res  = await fetch(`/api/compare?s1=${s1}&s2=${s2}`);
   const data = await res.json();
-  document.getElementById("loading").style.display = "none";
 
-  if (data.error) { alert(data.error); return; }
+  if (data.error) { msg.textContent = data.error; return; }
 
-  document.getElementById("col-a").innerHTML = buildCol(data.session1);
-  document.getElementById("col-b").innerHTML = buildCol(data.session2);
-  document.getElementById("compare-result").style.display = "grid";
+  msg.textContent = "";
+  renderComparison(data.session1, data.session2);
 }
 
-function buildCol(d) {
+function renderComparison(d1, d2) {
+  const result = document.getElementById("compare-result");
+  result.style.display = "block";
+
+  const t1 = d1.total_findings;
+  const t2 = d2.total_findings;
+
+  // Verdict
+  const vbox = document.getElementById("verdict-box");
+  if (t1 < t2) {
+    vbox.innerHTML = `<div class="verdict safer">✅ ${d1.session.target} is SAFER — ${t1} findings vs ${t2} findings</div>`;
+  } else if (t2 < t1) {
+    vbox.innerHTML = `<div class="verdict riskier">⚠️ ${d2.session.target} is SAFER — ${t2} findings vs ${t1} findings</div>`;
+  } else {
+    vbox.innerHTML = `<div class="verdict equal">⚡ EQUAL RISK — Both targets have ${t1} findings</div>`;
+  }
+
+  // Render columns
+  renderCol("col-a", d1, d2, "A");
+  renderCol("col-b", d2, d1, "B");
+}
+
+function renderCol(id, d, other, label) {
+  const col = document.getElementById(id);
   const sc = d.severity_counts;
-  const totalClass = d.total_findings > 10 ? "bad" : d.total_findings > 5 ? "warn" : "good";
-  return `
-    <div class="col-header">
-      <div class="col-session">// ${d.session.id}</div>
-      <div class="col-target">${d.session.target}</div>
-    </div>
-    <div class="col-body">
-      <div class="metric-row"><span class="metric-key">TOTAL FINDINGS</span><span class="metric-val ${totalClass}">${d.total_findings}</span></div>
-      <div class="metric-row"><span class="metric-key">HOSTS SCANNED</span><span class="metric-val">${d.host_count}</span></div>
-      <div class="metric-row"><span class="metric-key">WEB FINDINGS</span><span class="metric-val">${d.web_count}</span></div>
-      <div class="metric-row"><span class="metric-key">CVE FINDINGS</span><span class="metric-val">${d.cve_count}</span></div>
-      <div class="metric-row"><span class="metric-key">STATUS</span><span class="metric-val">${d.session.status.toUpperCase()}</span></div>
-      <div class="metric-row"><span class="metric-key">SCANNED</span><span class="metric-val" style="font-size:14px">${d.session.started_at.slice(0,10)}</span></div>
-      <div class="sev-row">
-        <span class="sev-chip c">CRITICAL: ${sc.Critical}</span>
-        <span class="sev-chip h">HIGH: ${sc.High}</span>
-        <span class="sev-chip m">MEDIUM: ${sc.Medium}</span>
-        <span class="sev-chip l">LOW: ${sc.Low}</span>
-      </div>
-    </div>`;
+  const osc = other.severity_counts;
+
+  const safer = (key) => sc[key] <= osc[key] ? "winner" : "loser";
+
+  col.innerHTML = `
+    <div class="col-header">// SCAN ${label}: ${d.session.target}</div>
+    <div class="stat-row"><span class="stat-label">Date</span><span class="stat-val">${d.session.started_at.substring(0,10)}</span></div>
+    <div class="stat-row"><span class="stat-label">Status</span><span class="stat-val">${d.session.status.toUpperCase()}</span></div>
+    <div class="stat-row"><span class="stat-label">Hosts Found</span><span class="stat-val">${d.host_count}</span></div>
+    <div class="stat-row"><span class="stat-label">Total Findings</span><span class="stat-val ${d.total_findings <= other.total_findings ? 'winner':'loser'}">${d.total_findings}</span></div>
+    <div class="stat-row"><span class="stat-label">Web Findings</span><span class="stat-val ${d.web_count <= other.web_count ? 'winner':'loser'}">${d.web_count}</span></div>
+    <div class="stat-row"><span class="stat-label">CVE Findings</span><span class="stat-val ${d.cve_count <= other.cve_count ? 'winner':'loser'}">${d.cve_count}</span></div>
+    <br>
+    <div style="font-size:9px;letter-spacing:3px;color:var(--text2);margin-bottom:10px;">// SEVERITY BREAKDOWN</div>
+    ${['Critical','High','Medium','Low'].map(s => `
+    <div class="stat-row">
+      <span class="stat-label"><span class="sev-badge ${s}">${s}</span></span>
+      <span class="stat-val ${safer(s)}">${sc[s] || 0}</span>
+    </div>`).join('')}
+    <br>
+    <a href="/scan/${d.session.id}" style="color:var(--accent);font-size:11px;text-decoration:none;">→ VIEW FULL RESULTS</a>
+  `;
 }
 </script>
 </body>

@@ -21,6 +21,7 @@ from modules.database import Database
 from modules.logger import get_logger
 from modules.risk_scorer import score_all_hosts
 from auth import auth, login_required
+from flask import send_from_directory
 
 logger = get_logger(__name__)
 
@@ -51,6 +52,14 @@ def index():
                            total_findings=total_findings,
                            page="home", title="CyberScan Pro Dashboard",
                            username=session.get("username", "admin"))
+
+
+@app.route("/favicon.ico")
+def favicon():
+    return send_from_directory(
+        os.path.join(app.root_path, "static"),
+        "favicon.ico", mimetype="image/vnd.microsoft.icon"
+    )
 
 
 @app.route("/scan/new", methods=["GET"])
@@ -175,6 +184,21 @@ def run_scan():
 
                     active_scans[session_id]["web_count"] = len(combined)
                     _log(f"Web scan done — Headers: {len(header_results)} | Vulns: {len(vuln_results)}")
+
+                    # Capture screenshot of target
+                    try:
+                        from modules.screenshot import ScreenshotCapture
+                        sc = ScreenshotCapture()
+                        tgt = f"http://{host_addr}" if not target.startswith("http") else target
+                        # Use the hostname for screenshot
+                        from modules.network_scanner import NetworkScanner
+                        hn = NetworkScanner(target)._resolve_target(target)[0]
+                        sc_url = f"http://{hn}" if hn else tgt
+                        sc_path = sc.capture(sc_url, session_id)
+                        if sc_path:
+                            _log(f"Screenshot captured: {os.path.basename(sc_path)}")
+                    except Exception as e:
+                        _log(f"Screenshot skipped: {e}")
                 except Exception as e:
                     _log(f"Web scan error: {e}")
 
@@ -517,13 +541,12 @@ def remediation_checklist(session_id):
 def _send_report_email(recipient: str, target: str, session_id: str, report_paths: list):
     """
     Send scan report via email using SMTP.
-    Configure these environment variables in Render:
-      SMTP_HOST — e.g. smtp.gmail.com
-      SMTP_PORT — e.g. 587
-      SMTP_USER — your Gmail address
-      SMTP_PASS — your Gmail App Password (not regular password)
-    To get Gmail App Password:
-      Google Account → Security → 2-Step Verification → App Passwords
+    Set these in Render Environment Variables:
+      SMTP_HOST = smtp.gmail.com
+      SMTP_PORT = 587
+      SMTP_USER = your Gmail address
+      SMTP_PASS = your Gmail App Password
+    Gmail App Password: Google Account → Security → 2-Step Verification → App Passwords
     """
     smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
     smtp_port = int(os.environ.get("SMTP_PORT", "587"))
@@ -531,7 +554,7 @@ def _send_report_email(recipient: str, target: str, session_id: str, report_path
     smtp_pass = os.environ.get("SMTP_PASS", "")
 
     if not smtp_user or not smtp_pass:
-        logger.warning("SMTP credentials not configured. Set SMTP_USER and SMTP_PASS env vars in Render.")
+        logger.warning("Email not sent: SMTP_USER and SMTP_PASS not set in environment variables.")
         return
 
     try:
@@ -602,6 +625,99 @@ def api_sessions():
     sessions = db.get_all_sessions()
     db.close()
     return jsonify(sessions)
+
+
+# ── LOCAL → CLOUD SYNC ───────────────────────────────────────────────────────
+
+@app.route("/api/sync", methods=["POST"])
+def api_sync():
+    """
+    Receive scan data from local CyberScan Pro instance and store it.
+    Called by local instance after completing a scan.
+    Requires API_KEY env var to be set for security.
+    """
+    api_key = os.environ.get("SYNC_API_KEY", "")
+    if api_key:
+        provided = request.headers.get("X-API-Key", "")
+        if provided != api_key:
+            return jsonify({"error": "Unauthorized"}), 401
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    try:
+        db = Database()
+        session_id = data.get("session_id")
+        target     = data.get("target", "unknown")
+        hosts      = data.get("hosts", [])
+        web_findings = data.get("web_findings", [])
+        cve_findings = data.get("cve_findings", [])
+
+        # Create session if it doesn't exist
+        existing = db.get_session(session_id)
+        if not existing:
+            db.conn.cursor().execute("""
+                INSERT OR IGNORE INTO scan_sessions
+                (id, target, status, started_at, completed_at)
+                VALUES (?, ?, 'completed', ?, ?)
+            """, (session_id, target,
+                  data.get("started_at", datetime.now().isoformat()),
+                  data.get("completed_at", datetime.now().isoformat())))
+            db.conn.commit()
+
+        db.save_hosts(session_id, hosts)
+        db.save_web_findings(session_id, web_findings)
+        db.save_cve_findings(session_id, cve_findings)
+        db.complete_session(session_id)
+        db.close()
+
+        logger.info(f"Synced local scan: {session_id} target={target}")
+        return jsonify({"success": True, "session_id": session_id})
+
+    except Exception as e:
+        logger.error(f"Sync error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+# ── SCREENSHOT ROUTES ────────────────────────────────────────────────────────
+
+@app.route("/screenshots/<session_id>")
+@login_required
+def get_screenshot(session_id):
+    """Serve screenshot for a session."""
+    import glob
+    screenshot_dir = os.path.join(os.path.dirname(__file__), "output", "screenshots")
+    pattern = os.path.join(screenshot_dir, f"screenshot_{session_id}.png")
+    matches = glob.glob(pattern)
+    if matches:
+        return send_from_directory(screenshot_dir, f"screenshot_{session_id}.png")
+    return jsonify({"error": "Screenshot not found"}), 404
+
+
+@app.route("/api/screenshot/<session_id>", methods=["POST"])
+@login_required
+def capture_screenshot(session_id):
+    """Trigger screenshot capture for a session."""
+    from modules.screenshot import ScreenshotCapture
+    db = Database()
+    sess = db.get_session(session_id)
+    hosts = db.get_hosts(session_id)
+    db.close()
+
+    if not sess:
+        return jsonify({"error": "Session not found"}), 404
+
+    target = sess["target"]
+    if not target.startswith("http"):
+        target = f"http://{target}"
+
+    sc = ScreenshotCapture()
+    path = sc.capture(target, session_id)
+
+    if path:
+        return jsonify({"success": True, "url": f"/screenshots/{session_id}"})
+    return jsonify({"success": False, "error": "Screenshot capture failed"}), 500
 
 
 # ── SCHEDULE ROUTES ──────────────────────────────────────────────────────────
