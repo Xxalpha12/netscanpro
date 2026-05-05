@@ -552,8 +552,10 @@ def _send_report_email(recipient: str, target: str, session_id: str, report_path
     smtp_pass = os.environ.get("SMTP_PASS", "")
 
     if not smtp_user or not smtp_pass:
-        logger.warning("Email not sent: SMTP_USER and SMTP_PASS not set in environment variables.")
+        logger.warning("Email not sent: Set SMTP_USER and SMTP_PASS in Render Environment Variables.")
         return
+
+    logger.info(f"Sending report email to {recipient} via {smtp_host}:{smtp_port}")
 
     try:
         msg = MIMEMultipart()
@@ -768,6 +770,107 @@ def api_delete_schedule(schedule_id):
     db.delete_schedule(schedule_id)
     db.close()
     return jsonify({"success": True})
+
+
+# ── SCAN HISTORY ──────────────────────────────────────────────────────────────
+
+@app.route("/history")
+@login_required
+def history():
+    db = Database()
+    sessions = db.get_all_sessions()
+    enriched = []
+    total_findings = 0
+    for s in sessions:
+        counts   = db.get_severity_counts(s["id"])
+        findings = db.get_total_findings(s["id"])
+        total_findings += findings
+        risk = "CRITICAL" if counts["Critical"] > 0 else                "HIGH"     if counts["High"] > 0     else                "MEDIUM"   if counts["Medium"] > 0   else                "LOW"      if counts["Low"] > 0       else "NONE"
+        enriched.append({**dict(s),
+            "severity_counts": counts,
+            "risk_rating": risk})
+    db.close()
+    return render_template("history.html",
+        sessions=enriched,
+        total=len(sessions),
+        completed=len([s for s in sessions if s["status"]=="completed"]),
+        errors=len([s for s in sessions if s["status"]=="error"]),
+        total_findings=total_findings,
+        page="history", title="Scan History")
+
+
+# ── NOTES ─────────────────────────────────────────────────────────────────────
+
+@app.route("/api/notes/<session_id>", methods=["GET"])
+@login_required
+def get_notes(session_id):
+    db = Database()
+    notes = db.get_notes(session_id)
+    db.close()
+    return jsonify({"notes": notes})
+
+
+@app.route("/api/notes/<session_id>", methods=["POST"])
+@login_required
+def save_notes(session_id):
+    data  = request.get_json()
+    notes = data.get("notes", "")
+    db    = Database()
+    db.save_notes(session_id, notes)
+    db.close()
+    return jsonify({"success": True})
+
+
+# ── NOTIFICATIONS ─────────────────────────────────────────────────────────────
+
+@app.route("/api/notifications")
+@login_required
+def get_notifications():
+    db = Database()
+    sessions = db.get_all_sessions()
+    notifications = []
+    for s in sessions:
+        if s["status"] != "completed":
+            continue
+        counts = db.get_severity_counts(s["id"])
+        if counts["Critical"] > 0:
+            notifications.append({
+                "type":       "critical",
+                "message":    f"{counts['Critical']} CRITICAL vulnerability found on {s['target']}",
+                "session_id": s["id"],
+                "time":       s.get("started_at","")
+            })
+        elif counts["High"] > 0:
+            notifications.append({
+                "type":       "high",
+                "message":    f"{counts['High']} HIGH severity finding on {s['target']}",
+                "session_id": s["id"],
+                "time":       s.get("started_at","")
+            })
+    db.close()
+    return jsonify(notifications[:10])
+
+
+# ── RISK CHART ────────────────────────────────────────────────────────────────
+
+@app.route("/api/risk-chart")
+@login_required
+def risk_chart_data():
+    db = Database()
+    sessions = [s for s in db.get_all_sessions()
+                if s["status"] == "completed"][:10]
+    chart_data = []
+    for s in sessions:
+        counts = db.get_severity_counts(s["id"])
+        score  = min(counts["Critical"]*25 + counts["High"]*15 +
+                     counts["Medium"]*8  + counts["Low"]*3, 100)
+        chart_data.append({
+            "target": s["target"][:25],
+            "score":  score,
+            "date":   s.get("started_at","")[:10]
+        })
+    db.close()
+    return jsonify(chart_data)
 
 
 def _ts():

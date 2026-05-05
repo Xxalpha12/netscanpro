@@ -140,6 +140,13 @@ class Database:
             )
         """)
         cursor.execute("""
+            CREATE TABLE IF NOT EXISTS scan_notes (
+                session_id TEXT PRIMARY KEY,
+                notes TEXT DEFAULT '',
+                updated_at TEXT NOT NULL
+            )
+        """)
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS scan_schedules (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 target TEXT NOT NULL,
@@ -440,6 +447,22 @@ class Database:
         cursor.execute("UPDATE scan_schedules SET active=0 WHERE id=?",
                        (schedule_id,))
         self.conn.commit()
+
+    # ── NOTES ────────────────────────────────────────────
+
+    def save_notes(self, session_id: str, notes: str):
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            INSERT OR REPLACE INTO scan_notes (session_id, notes, updated_at)
+            VALUES (?, ?, ?)
+        """, (session_id, notes, datetime.now().isoformat()))
+        self.conn.commit()
+
+    def get_notes(self, session_id: str) -> str:
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT notes FROM scan_notes WHERE session_id=?", (session_id,))
+        row = cursor.fetchone()
+        return row[0] if row else ""
 
     def close(self):
         self.conn.close()
