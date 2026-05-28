@@ -232,7 +232,7 @@ class ReportGenerator:
             from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
                                             Table, TableStyle, HRFlowable,
                                             PageBreak, KeepTogether)
-            from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFIED
+            from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
         except ImportError:
             logger.error("reportlab not installed — PDF skipped")
             return
@@ -258,15 +258,15 @@ class ReportGenerator:
             title="CyberScan Pro Report", author="Obeh Emmanuel Onoriode")
 
         FONT = "Helvetica"
+        _base_styles = getSampleStyleSheet()
         def S(name, **kw):
-            from reportlab.lib.styles import ParagraphStyle
-            return ParagraphStyle(name, fontName=FONT, **kw)
+            return ParagraphStyle(name, parent=_base_styles["Normal"], **kw)
 
         TITLE = S("T",  fontSize=20, textColor=colors.white, fontName="Helvetica-Bold", alignment=TA_CENTER)
         SUB   = S("SB", fontSize=10, textColor=colors.HexColor("#A8C4D8"), alignment=TA_CENTER)
         H1    = S("H1", fontSize=14, textColor=NAVY, fontName="Helvetica-Bold", spaceBefore=16, spaceAfter=6)
         H2    = S("H2", fontSize=11, textColor=BLUE, fontName="Helvetica-Bold", spaceBefore=10, spaceAfter=4)
-        BD    = S("BD", fontSize=9,  leading=14, spaceAfter=6, alignment=TA_JUSTIFIED)
+        BD    = S("BD", fontSize=9,  leading=14, spaceAfter=6, alignment=TA_JUSTIFY)
         SM    = S("SM", fontSize=7.5, textColor=colors.grey, leading=11)
         LB    = S("LB", fontSize=8,  textColor=colors.grey, fontName="Helvetica-Bold")
         PE    = S("PE", fontSize=8.5, leading=13, spaceAfter=3)

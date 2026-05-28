@@ -1,5 +1,5 @@
 """
-CyberScan Pro - Web Application Tester Module
+NetScan Pro - Web Application Tester Module
 Crawls web applications on discovered hosts and tests for
 common OWASP Top 10 vulnerabilities.
 
@@ -114,7 +114,7 @@ class WebTester:
         self.findings = []
         self.session = requests.Session()
         self.session.headers.update({
-            "User-Agent": "CyberScanPro/1.0 (Authorized Security Assessment)"
+            "User-Agent": "NetScanPro/1.0 (Authorized Security Assessment)"
         })
         self.session.verify = False  # For self-signed certs in lab environments
 
@@ -157,22 +157,34 @@ class WebTester:
         web_ports = {80, 443, 8080, 8443, 8000, 8888}
 
         for host in self.hosts:
-            for port in host.get("ports", []):
+            ports = host.get("ports", [])
+            # If no ports found, try HTTP on port 80 by default
+            if not ports:
+                ports = [{"port": 80, "service": "http"}]
+
+            added = False
+            for port in ports:
                 pnum = port.get("port")
-                svc = port.get("service", "")
+                svc  = port.get("service", "")
+                # Accept web ports OR http in service name
                 if pnum in web_ports or "http" in svc.lower():
-                    scheme = "https" if pnum in {443, 8443} else "http"
-                    # Use hostname if available (better for virtual hosting)
-                    host_addr = host.get("hostname", host["ip"])
+                    scheme    = "https" if pnum in {443, 8443} else "http"
+                    host_addr = host.get("hostname") or host.get("ip", "")
                     if host_addr in ("N/A", "Unknown", "", None):
                         host_addr = host["ip"]
-                    # Use standard port if 80/443, otherwise include port
                     if (scheme == "http" and pnum == 80) or (scheme == "https" and pnum == 443):
                         url = f"{scheme}://{host_addr}"
                     else:
                         url = f"{scheme}://{host_addr}:{pnum}"
                     targets.append({"ip": host["ip"], "url": url})
+                    added = True
                     break
+
+            # HTTP fallback using target hostname directly
+            if not added:
+                host_addr = host.get("hostname") or host.get("ip", "")
+                if host_addr not in ("N/A", "Unknown", "", None):
+                    targets.append({"ip": host["ip"], "url": f"http://{host_addr}"})
         return targets
 
     def _crawl(self, base_url: str, max_pages: int = 20) -> tuple:
