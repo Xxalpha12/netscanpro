@@ -444,21 +444,80 @@ class ReportGenerator:
             for host in ctx["hosts"]:
                 story.append(Paragraph(f"<b>{host['ip']}</b> — {host.get('hostname','N/A')} — OS: {host.get('os','Unknown')}", H2))
                 if host.get("ports"):
-                    pd = [["Port", "Service", "Version", "Security Note"]]
+                    PORT_INFO = {
+                        21:  ("FTP — File Transfer Protocol",
+                              "Transfers files between client and server with NO encryption. Passwords and file contents are transmitted in plain text.",
+                              "Attacker captures FTP traffic with a packet sniffer, extracts login credentials in plain text, then logs in to steal files or upload malware.",
+                              "Disable FTP. Use SFTP (port 22) instead. If FTP required, enable FTPS with TLS encryption."),
+                        22:  ("SSH — Secure Shell",
+                              "Encrypted remote server access. The secure standard for server administration.",
+                              "Automated bots run brute force attacks 24/7 trying thousands of passwords. Weak passwords lead to complete server compromise.",
+                              "Disable password login. Use SSH keys only. Disable root login. Install fail2ban."),
+                        23:  ("Telnet — CRITICAL RISK",
+                              "Legacy remote access with ZERO encryption. Passwords and all commands sent as plain text.",
+                              "Attacker uses free tool (Wireshark) to capture session in real time and read your password as you type it.",
+                              "IMMEDIATELY: systemctl stop telnetd && systemctl disable telnetd. Use SSH instead."),
+                        25:  ("SMTP — Mail Server (Outgoing)",
+                              "Sends emails between mail servers. Port 25 handles server-to-server email delivery.",
+                              "If misconfigured as open relay, attackers route millions of spam emails through your server, destroying your domain reputation.",
+                              "Require SMTP authentication. Configure SPF, DKIM, DMARC DNS records."),
+                        53:  ("DNS — Domain Name System",
+                              "Translates domain names to IP addresses. Critical internet infrastructure service.",
+                              "DNS amplification attacks flood victims with traffic. Cache poisoning redirects users to fake websites. Zone transfer reveals internal network map.",
+                              "Restrict zone transfers. Disable recursion for external clients. Keep DNS software updated."),
+                        80:  ("HTTP — Web Server (Unencrypted)",
+                              "Serves web pages with NO encryption. All data including passwords travel in plain text.",
+                              "Attacker intercepts HTTP traffic to steal session cookies (account takeover), capture login credentials, or modify page content in transit.",
+                              "Install SSL certificate (free from Let's Encrypt). Redirect all HTTP to HTTPS. Add Strict-Transport-Security header."),
+                        110: ("POP3 — Email Retrieval (Unencrypted)",
+                              "Downloads emails from server. Without SSL, everything transmitted in plain text.",
+                              "Attacker intercepts POP3 traffic, extracts email password, reads all emails, resets passwords for bank/social accounts using that email.",
+                              "Disable port 110. Use POP3S on port 995 with SSL/TLS. Update all mail clients."),
+                        143: ("IMAP — Email Access (Unencrypted)",
+                              "Email access protocol. Without encryption, credentials and email content exposed.",
+                              "Attacker steals email credentials, reads all private emails, impersonates account holder, resets passwords for all linked accounts.",
+                              "Disable port 143. Use IMAPS on port 993. Set ssl=required in Dovecot config."),
+                        443: ("HTTPS — Secure Web Server",
+                              "Encrypted web traffic using TLS/SSL. Protects data in transit.",
+                              "If old TLS versions enabled, vulnerabilities like POODLE/BEAST allow decryption. Expired certs enable man-in-the-middle attacks.",
+                              "Disable TLS 1.0/1.1, SSLv2/SSLv3. Enable TLS 1.2/1.3 only. Test at ssllabs.com."),
+                        465: ("SMTPS — Secure Mail Submission",
+                              "Encrypted email submission using implicit SSL/TLS.",
+                              "Weak authentication allows attackers to relay spam through your server, blacklisting your domain.",
+                              "Require strong authentication. Enforce TLS. Implement rate limiting. Configure SPF/DKIM/DMARC."),
+                        587: ("SMTP Submission",
+                              "Email client submission port using STARTTLS encryption.",
+                              "Without authentication requirement, attackers use your server as spam relay, destroying email reputation.",
+                              "Require authentication. Enforce STARTTLS. Monitor for unusual sending volume."),
+                        3306:("MySQL Database — CRITICAL RISK",
+                              "Direct access to your database server. Should NEVER be publicly accessible.",
+                              "Automated tools find exposed MySQL and brute force root password. If successful, entire database is stolen or deleted as ransomware.",
+                              "IMMEDIATELY: iptables -A INPUT -p tcp --dport 3306 -j DROP. Set bind-address=127.0.0.1 in my.cnf."),
+                        3389:("RDP — Remote Desktop — CRITICAL RISK",
+                              "Graphical remote control of Windows server. Actively targeted by ransomware groups 24/7.",
+                              "Ransomware groups scan internet for RDP, brute force access, then encrypt all files demanding payment. BlueKeep allows unauthenticated RCE.",
+                              "Restrict to specific IPs by firewall. Enable NLA. Use VPN before RDP. Change default port."),
+                        6379:("Redis — CRITICAL RISK",
+                              "In-memory cache with NO default password. Never expose publicly.",
+                              "Attacker connects without password, reads all cached data including session tokens, writes malicious cache entries, or executes OS commands.",
+                              "Add password in redis.conf. Bind to 127.0.0.1. Block port 6379 at firewall."),
+                    }
+
+                    pd = [["Port", "Service", "Version", "Risk Level"]]
                     for p in host["ports"]:
                         port = p.get("port", 0)
-                        note = {22:"Ensure key-based auth, disable root login",
-                                21:"⚠️ FTP unencrypted — use SFTP instead",
-                                23:"🚨 Telnet unencrypted — disable immediately",
-                                80:"Redirect all traffic to HTTPS (port 443)",
-                                443:"Ensure TLS 1.2+ only, disable old SSL",
-                                3306:"⚠️ MySQL publicly exposed — restrict by firewall",
-                                3389:"🚨 RDP exposed — restrict to specific IPs only",
-                                6379:"🚨 Redis exposed — verify authentication enabled",
-                               }.get(port, "Verify this port needs public access")
+                        if port in [23, 3306, 3389, 6379, 27017]:
+                            risk = "🔴 CRITICAL"
+                        elif port in [21, 25, 53, 110, 143]:
+                            risk = "🟠 HIGH"
+                        elif port in [80, 22, 587]:
+                            risk = "🟡 MEDIUM"
+                        else:
+                            risk = "🔵 LOW/REVIEW"
                         pd.append([f"{port}/{p.get('protocol','tcp')}",
-                                   p.get("service",""), str(p.get("version",""))[:30], note])
-                    pt = Table(pd, colWidths=[2*cm,2.5*cm,4.5*cm,8*cm])
+                                   p.get("service",""), str(p.get("version",""))[:25], risk])
+
+                    pt = Table(pd, colWidths=[2*cm,2.5*cm,7*cm,5.5*cm])
                     pt.setStyle(TableStyle([
                         ("BACKGROUND",    (0,0),(-1,0), NAVY),
                         ("TEXTCOLOR",     (0,0),(-1,0), colors.white),
@@ -471,6 +530,64 @@ class ReportGenerator:
                         ("VALIGN",        (0,0),(-1,-1), "TOP"),
                     ]))
                     story.append(pt)
+                    story.append(sp(0.3))
+
+                    # Detailed port analysis
+                    story.append(Paragraph("Port Security Analysis", H2))
+                    for p in host["ports"]:
+                        port = p.get("port", 0)
+                        info = PORT_INFO.get(port, (
+                            f"Port {port} Service",
+                            "This network service is publicly accessible from the internet.",
+                            "Attackers probe this service for known vulnerabilities, attempt default credential login, or exploit unpatched software.",
+                            "Verify if public access is needed. Close the port if not required. Keep software updated."
+                        ))
+                        svc_name, what, attack, fix = info
+
+                        if port in [23, 3306, 3389, 6379, 27017]:
+                            left_col = colors.HexColor("#C00000")
+                            bg_col   = colors.HexColor("#fff5f5")
+                        elif port in [21, 25, 53, 110, 143]:
+                            left_col = colors.HexColor("#E67E22")
+                            bg_col   = colors.HexColor("#fffbf5")
+                        else:
+                            left_col = colors.HexColor("#2980B9")
+                            bg_col   = colors.HexColor("#f5faff")
+
+                        port_header = Table([[
+                            Paragraph(f"<b>Port {port} — {svc_name}</b>  "
+                                      f"<font size='8' color='grey'>{p.get('version','')}</font>",
+                                      S("PH", fontSize=10, fontName="Helvetica-Bold"))
+                        ]], colWidths=[17*cm])
+                        port_header.setStyle(TableStyle([
+                            ("BACKGROUND",    (0,0),(-1,-1), bg_col),
+                            ("LINEBELOW",     (0,0),(-1,0), 2, left_col),
+                            ("TOPPADDING",    (0,0),(-1,-1), 8),
+                            ("BOTTOMPADDING", (0,0),(-1,-1), 8),
+                            ("LEFTPADDING",   (0,0),(-1,-1), 10),
+                        ]))
+                        story.append(port_header)
+
+                        details = Table([
+                            [Paragraph("<b>🔍 What is this service?</b>", LB),
+                             Paragraph("<b>💥 What could an attacker do?</b>", LB),
+                             Paragraph("<b>🔧 How to secure this</b>", LB)],
+                            [Paragraph(what, PE),
+                             Paragraph(attack, PE),
+                             Paragraph(fix, PE)],
+                        ], colWidths=[5.67*cm, 5.67*cm, 5.66*cm])
+                        details.setStyle(TableStyle([
+                            ("BACKGROUND",    (0,0),(-1,-1), colors.white),
+                            ("BACKGROUND",    (0,0),(-1,0), colors.HexColor("#f8f9fa")),
+                            ("GRID",          (0,0),(-1,-1), 0.5, colors.HexColor("#e0e0e0")),
+                            ("TOPPADDING",    (0,0),(-1,-1), 6),
+                            ("BOTTOMPADDING", (0,0),(-1,-1), 6),
+                            ("LEFTPADDING",   (0,0),(-1,-1), 8),
+                            ("VALIGN",        (0,0),(-1,-1), "TOP"),
+                            ("LINEAFTER",     (0,0),(1,-1), 0.5, colors.HexColor("#e0e0e0")),
+                        ]))
+                        story.append(details)
+                        story.append(sp(0.2))
                 story.append(sp(0.4))
             story.append(PageBreak())
 

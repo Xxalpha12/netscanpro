@@ -237,27 +237,116 @@
     <h3>{{ host.ip }}{% if host.hostname and host.hostname != 'N/A' %} — {{ host.hostname }}{% endif %}</h3>
     {% if host.ports %}
     <table>
-      <tr><th>Port</th><th>Service</th><th>Version</th><th>Security Note</th></tr>
+      <tr><th>Port</th><th>Service</th><th>Version</th><th>Risk Level</th></tr>
       {% for p in host.ports %}
       <tr>
         <td><strong>{{ p.port }}/{{ p.protocol }}</strong></td>
         <td>{{ p.service }}</td>
-        <td>{{ p.version or 'Unknown' }}</td>
-        <td style="color:#555;">
-          {% if p.port == 22 %}SSH — ensure key-based authentication only, disable root login
-          {% elif p.port == 21 %}⚠️ FTP transmits data unencrypted — consider upgrading to SFTP
-          {% elif p.port == 23 %}🚨 Telnet is completely unencrypted — disable immediately, use SSH
-          {% elif p.port == 80 %}HTTP — no encryption, redirect all traffic to HTTPS (port 443)
-          {% elif p.port == 443 %}HTTPS — encrypted, ensure TLS 1.2+ only, disable old SSL versions
-          {% elif p.port == 3306 %}⚠️ MySQL database exposed publicly — restrict access by firewall
-          {% elif p.port == 3389 %}🚨 RDP exposed — very high risk, restrict to specific IP addresses only
-          {% elif p.port == 6379 %}🚨 Redis exposed — often has no authentication by default
-          {% elif p.port == 27017 %}🚨 MongoDB exposed — verify authentication is enabled
-          {% else %}Verify this port needs to be publicly accessible — close if not needed{% endif %}
+        <td style="font-size:11px;">{{ p.version or 'Unknown' }}</td>
+        <td style="color:#555;font-size:11px;">
+          {% if p.port == 21 %}🟠 HIGH — FTP unencrypted
+          {% elif p.port == 22 %}🟡 MEDIUM — SSH, check auth config
+          {% elif p.port == 23 %}🔴 CRITICAL — Telnet, disable now
+          {% elif p.port == 25 %}🟠 HIGH — SMTP, check relay config
+          {% elif p.port == 53 %}🟠 HIGH — DNS exposed publicly
+          {% elif p.port == 80 %}🟡 MEDIUM — HTTP unencrypted
+          {% elif p.port == 110 %}🟠 HIGH — POP3 unencrypted
+          {% elif p.port == 143 %}🟠 HIGH — IMAP unencrypted
+          {% elif p.port == 443 %}🟢 LOW — HTTPS, verify TLS version
+          {% elif p.port == 465 %}🟡 MEDIUM — SMTPS, verify cert
+          {% elif p.port == 587 %}🟡 MEDIUM — SMTP submission
+          {% elif p.port == 993 %}🟢 LOW — IMAPS encrypted
+          {% elif p.port == 995 %}🟢 LOW — POP3S encrypted
+          {% elif p.port == 3306 %}🔴 CRITICAL — MySQL exposed
+          {% elif p.port == 3389 %}🔴 CRITICAL — RDP exposed
+          {% elif p.port == 6379 %}🔴 CRITICAL — Redis exposed
+          {% elif p.port == 27017 %}🔴 CRITICAL — MongoDB exposed
+          {% else %}🟡 MEDIUM — Verify if needed{% endif %}
         </td>
       </tr>
       {% endfor %}
     </table>
+
+    <!-- Detailed port explanations -->
+    <div style="margin-top:16px;">
+      <h4 style="font-size:13px;color:#1F3864;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #e0e0e0;">Port-by-Port Security Analysis</h4>
+      {% for p in host.ports %}
+      {% set risk_color = "#C00000" if p.port in [23,3306,3389,6379,27017] else "#E67E22" if p.port in [21,25,53,110,143] else "#2980B9" %}
+      <div style="border-left:4px solid {{ risk_color }};background:#f8fafc;padding:14px 16px;margin-bottom:12px;border-radius:0 6px 6px 0;">
+
+        <div style="font-weight:bold;font-size:13px;margin-bottom:10px;color:#222;">
+          Port {{ p.port }} / {{ p.service.upper() if p.service else 'UNKNOWN' }}
+          <span style="font-size:10px;font-weight:normal;color:#888;margin-left:8px;">{{ p.version or '' }}</span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;font-size:12px;">
+
+          <div style="background:white;border:1px solid #e8eef4;border-radius:4px;padding:10px;">
+            <div style="font-size:9px;font-weight:bold;color:#2980B9;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">🔍 What is this?</div>
+            <div style="color:#444;line-height:1.6;">
+              {% if p.port == 21 %}FTP (File Transfer Protocol) allows uploading and downloading files to/from the server. It was designed before internet security was a concern and has no built-in encryption — everything is transmitted in plain text.
+              {% elif p.port == 22 %}SSH (Secure Shell) is an encrypted protocol for remotely accessing and managing a server over the internet. It is the standard, secure replacement for Telnet.
+              {% elif p.port == 23 %}Telnet is a legacy protocol for remote server access. It was created in 1969 when security was not a concern. It transmits absolutely everything — commands, responses, and passwords — as plain readable text.
+              {% elif p.port == 25 %}SMTP (Simple Mail Transfer Protocol) is the standard protocol for sending emails between mail servers. Port 25 handles server-to-server email delivery across the internet.
+              {% elif p.port == 53 %}DNS (Domain Name System) is the internet's phone book — it translates domain names like fupre.edu.ng into IP addresses. It runs on port 53 and handles billions of queries daily.
+              {% elif p.port == 80 %}HTTP (HyperText Transfer Protocol) is the foundation of web communication. Port 80 serves web pages, but with zero encryption — all data travels in plain readable text.
+              {% elif p.port == 110 %}POP3 (Post Office Protocol) is used by email clients to download emails from the server to a local device. Without SSL, credentials and email content are transmitted unencrypted.
+              {% elif p.port == 143 %}IMAP (Internet Message Access Protocol) allows email clients to access and manage emails stored on the mail server. Without encryption, all email access credentials and content are exposed.
+              {% elif p.port == 443 %}HTTPS (HTTP Secure) is the encrypted version of HTTP. It uses TLS/SSL to encrypt all traffic between the browser and the server, protecting data from interception.
+              {% elif p.port == 465 %}SMTPS (SMTP Secure) is the encrypted email submission port using implicit SSL/TLS. It is used by email clients to send outgoing mail securely through the mail server.
+              {% elif p.port == 587 %}SMTP Submission is the standard port for email clients to submit outgoing mail to the server. It uses STARTTLS to upgrade the connection to encrypted before sending credentials.
+              {% elif p.port == 3306 %}MySQL is one of the world's most popular relational database management systems. Port 3306 provides direct access to the database engine and all stored data.
+              {% elif p.port == 3389 %}RDP (Remote Desktop Protocol) allows graphical remote control of a Windows server — essentially viewing and controlling the server's desktop remotely over the internet.
+              {% elif p.port == 6379 %}Redis is an in-memory data store used for caching, session management, and real-time data. By default it has no password and no encryption.
+              {% else %}This is a network service running on port {{ p.port }}. Every open port is a potential entry point for attackers if not properly secured and maintained.{% endif %}
+            </div>
+          </div>
+
+          <div style="background:white;border:1px solid #fde8e8;border-radius:4px;padding:10px;">
+            <div style="font-size:9px;font-weight:bold;color:#C00000;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">💥 What could an attacker do?</div>
+            <div style="color:#444;line-height:1.6;">
+              {% if p.port == 21 %}An attacker uses a packet sniffer (free tool) to capture all FTP network traffic and extract your login username and password in plain text. With these credentials they can log into your server, steal all files, upload malicious files, deface your website, or use your server to attack others.
+              {% elif p.port == 22 %}Automated bots run 24/7 trying thousands of username and password combinations per second (brute force). If a weak password like "admin123" or "password" is used, attackers gain complete control of your server — they can delete data, install ransomware, or use the server for attacks.
+              {% elif p.port == 23 %}Using freely available tools like Wireshark, an attacker captures everything transmitted during your Telnet session — including your password typed in real time. They can then log in with your credentials and have complete control of the server.
+              {% elif p.port == 25 %}If misconfigured as an open relay, attackers route millions of spam and phishing emails through your server without authentication. Your IP gets blacklisted, your domain reputation is destroyed, and all legitimate emails from your domain start going to spam folders.
+              {% elif p.port == 53 %}Attackers exploit misconfigured DNS servers for DNS amplification attacks (sending massive traffic floods to victims), DNS cache poisoning (redirecting your users to fake websites controlled by the attacker), or zone transfer attacks (downloading your complete internal network map).
+              {% elif p.port == 80 %}Using tools like Wireshark or mitmproxy, attackers intercept unencrypted HTTP traffic to: steal session cookies and take over user accounts without needing passwords, capture login form data in transit, modify web page content being delivered to users (injecting malicious scripts or fake content).
+              {% elif p.port == 110 %}Attackers intercept POP3 traffic and extract email login credentials in plain text. With email access, they can read all private communications, reset passwords for bank accounts, social media, and other services linked to that email address, effectively taking over the victim's entire digital identity.
+              {% elif p.port == 143 %}Attackers gain persistent access to all emails on the server — reading confidential messages, impersonating the account holder, using the email account to send phishing messages to contacts, and resetting passwords for all other accounts using that email address.
+              {% elif p.port == 443 %}If old SSL/TLS versions are enabled (SSLv3, TLS 1.0), attackers exploit known vulnerabilities like POODLE (2014) or BEAST (2011) to decrypt supposedly secure HTTPS traffic. An expired or self-signed certificate enables man-in-the-middle attacks where attackers intercept all "secure" traffic.
+              {% elif p.port == 465 or p.port == 587 %}If authentication is weak or not required, attackers relay spam and phishing emails through your server — making them appear to come from your trusted domain. This destroys your email reputation and gets your domain added to global spam blacklists.
+              {% elif p.port == 3306 %}Automated tools scan the internet for exposed MySQL servers and run brute force attacks on the root account. If successful, attackers dump your entire database — stealing every user record, password hash, personal detail, and sensitive data. They can also delete your entire database as ransomware.
+              {% elif p.port == 3389 %}Ransomware groups specifically target exposed RDP as their primary attack method. Automated scanners find your RDP, run brute force attacks, gain access, then: encrypt every file on the server demanding payment, steal all data before encrypting (double extortion), or sell the access to other criminal groups.
+              {% elif p.port == 6379 %}Attackers connect without any password (default Redis config has none) and read all cached data including session tokens and user information, overwrite cached data to inject malicious content, or in misconfigured setups write a cron job or SSH key to execute commands with full server access.
+              {% else %}Attackers probe this service for known vulnerabilities, attempt default credential login, exploit unpatched software versions, or use the service as a pivot point to access other systems on the network.{% endif %}
+            </div>
+          </div>
+
+          <div style="background:white;border:1px solid #e8f5e8;border-radius:4px;padding:10px;">
+            <div style="font-size:9px;font-weight:bold;color:#27AE60;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">🔧 How to secure this</div>
+            <div style="color:#444;line-height:1.6;">
+              {% if p.port == 21 %}1. Disable FTP: <code>systemctl stop vsftpd && systemctl disable vsftpd</code><br>2. Install SFTP (already available through SSH)<br>3. Update all users to use SFTP clients (FileZilla supports SFTP)<br>4. If FTP absolutely required, enable FTPS (FTP over TLS) and restrict to specific IP addresses.
+              {% elif p.port == 22 %}1. Disable password login: set <code>PasswordAuthentication no</code> in /etc/ssh/sshd_config<br>2. Use SSH keys only<br>3. Disable root login: <code>PermitRootLogin no</code><br>4. Install fail2ban to auto-block failed attempts<br>5. Consider changing port from 22 to a random number.
+              {% elif p.port == 23 %}IMMEDIATELY: <code>systemctl stop telnetd && systemctl disable telnetd</code><br>There is no secure version of Telnet. It must be completely disabled. Install and configure SSH as the replacement. This is the most urgent fix on this server.
+              {% elif p.port == 25 %}1. Require SMTP authentication for relay<br>2. Configure SPF record in DNS: <code>v=spf1 mx ~all</code><br>3. Set up DKIM signing for outgoing mail<br>4. Configure DMARC policy<br>5. Block port 25 outbound except to your mail server.
+              {% elif p.port == 53 %}1. Disable zone transfers to unauthorised servers<br>2. Disable recursion for external clients<br>3. Implement DNS rate limiting<br>4. Keep BIND/named updated<br>5. Consider using a managed DNS service like Cloudflare.
+              {% elif p.port == 80 %}1. Get a free SSL cert from Let's Encrypt: <code>certbot --apache</code><br>2. Redirect all HTTP to HTTPS in Apache/Nginx config<br>3. Add header: <code>Strict-Transport-Security: max-age=31536000</code><br>4. Test at: https://ssllabs.com/ssltest
+              {% elif p.port == 110 %}1. Disable unencrypted POP3: block port 110 at firewall<br>2. Enable POP3S on port 995<br>3. Update all mail client configurations to use port 995 with SSL/TLS<br>4. In Dovecot: set <code>ssl = required</code> in dovecot.conf
+              {% elif p.port == 143 %}1. Disable unencrypted IMAP: block port 143 at firewall<br>2. Enable IMAPS on port 993<br>3. Update all mail clients to use port 993 with SSL/TLS<br>4. In Dovecot: set <code>ssl = required</code> and <code>disable_plaintext_auth = yes</code>
+              {% elif p.port == 443 %}1. Disable TLS 1.0, TLS 1.1, SSLv2, SSLv3<br>2. Enable TLS 1.2 and TLS 1.3 only<br>3. Use strong cipher suites<br>4. Ensure certificate is valid and not expiring<br>5. Test configuration at ssllabs.com — aim for grade A or A+.
+              {% elif p.port == 465 or p.port == 587 %}1. Require authentication for all connections<br>2. Enforce TLS encryption (no plain text allowed)<br>3. Implement rate limiting per account<br>4. Monitor for unusual sending volume<br>5. Configure SPF, DKIM, and DMARC.
+              {% elif p.port == 3306 %}IMMEDIATELY: <code>iptables -A INPUT -p tcp --dport 3306 -j DROP</code><br>Then: set <code>bind-address = 127.0.0.1</code> in /etc/mysql/my.cnf<br>Use SSH tunneling for remote database access<br>Change default root password<br>Remove anonymous MySQL users.
+              {% elif p.port == 3389 %}1. Add firewall rule allowing RDP only from your specific IP<br>2. Enable Network Level Authentication (NLA)<br>3. Set up a VPN and require VPN connection before RDP<br>4. Change RDP port from 3389 to a random number<br>5. Enable account lockout after failed attempts.
+              {% elif p.port == 6379 %}1. Add password: <code>requirepass StrongPassword123!</code> in redis.conf<br>2. Bind to localhost: <code>bind 127.0.0.1</code><br>3. Firewall: <code>iptables -A INPUT -p tcp --dport 6379 -j DROP</code><br>4. Disable dangerous commands: <code>rename-command FLUSHALL ""</code>
+              {% else %}1. Verify if this port needs public access — close it if not<br>2. Firewall: block external access if internal only<br>3. Keep the software updated to latest version<br>4. Monitor access logs for suspicious activity<br>5. Consider running a vulnerability scan regularly.{% endif %}
+            </div>
+          </div>
+
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
     {% else %}
     <p style="color:#888;">No open ports detected on this host.</p>
     {% endif %}
